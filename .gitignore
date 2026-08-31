@@ -1,0 +1,28 @@
+# --- ローカル限定 ---
+# 設計判断の記録（ADR）。チーム内の検討過程なので公開リポジトリには上げない。
+# docs/ とは分離してあり、docs/ は単独で共有できる。
+decisions/
+
+# --- 環境・秘密情報 ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- 生成物 ---
+openapi.json
+
+# --- OS / エディタ ---
+.DS_Store
+.idea/
+*.swp
