@@ -1,0 +1,17 @@
+graph TD
+    H["帽子型デバイス<br/>撮影・音声入出力<br/>Raspberry Pi Zero 2 W"]
+    P["スマートフォン<br/>AI画像認識・判定<br/>音声応答・作業アプリ"]
+    C["AWSクラウド<br/>EC2・RDS・S3<br/>記録・予定生成・知識検索"]
+    S["園地センサー<br/>土壌水分・気温・湿度"]
+    V["農家向け画面<br/>進捗・予定・園地マップ"]
+
+    H <-->|"Wi-Fi：映像・音声"| P
+    P <-->|"LTE：記録・詳しい説明"| C
+    S -->|"LoRaWAN：計測データ"| C
+    C -->|"集計・提案"| V
+
+    style H fill:#EAF3E8,stroke:#4F7550,color:#183019
+    style P fill:#FFF4D8,stroke:#B47B19,color:#382508
+    style C fill:#E8F0FA,stroke:#4F6F95,color:#142A43
+    style S fill:#F3EBDD,stroke:#877253,color:#33291D
+    style V fill:#F4F4F4,stroke:#666666,color:#202020
