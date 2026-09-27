@@ -39,15 +39,16 @@
 
 ## 常設センサーの接続
 
-[API仕様](requirements/04-api.md) のF-10を参照してください。
+**送信先・デバイスキー・送信例は [AWS とセンサー受信](aws.md) にまとめています。**
+AWS 上で受信・保存まで動いています（2026-09-27）。
 
-- Wi-Fi直結: `POST /api/v1/ingest/sensor`、認証ヘッダーは `X-Device-Key`。
-- 送信データ: `measured_at`、`temperature`、`humidity`、`pressure`、`soil_moisture_raw`、`battery_pct`。
+- 本選デモは Wi-Fi 直結: `POST /api/v1/ingest/sensor`、認証ヘッダーは `X-Device-Key`。デバイスキーはバックエンド担当が発行する。
+- 送信データ: `measured_at`（タイムゾーン付き）、`temperature`、`humidity`、`pressure`、`soil_moisture_raw`、`battery_pct`（必須）。
 - 土壌水分はADC生値を送り、換算はサーバー側。送信間隔の目安は10〜30分。
-- LoRaWANはTTN Webhookの受け口を設計済みですが、通信方式の採用は未確定です。
-- LoRaWANの10バイト形式はAPI資料を参照。バイトオーダーや欠測値の扱いは接続前に合意が必要です。
+- LoRaWAN は本番の構成として発表で示す。TTN Webhook の受け口（`/ingest/lorawan`）は実装・テスト済みだが、LoRa モジュールとゲートウェイは予算の都合で本選では使わない。
+- LoRaWAN の10バイト形式は決定済み（ビッグエンディアン、欠測は `0x7FFF` / `0xFFFF` / `0xFF`）。詳細は [aws.md](aws.md#本番構成-lorawanttn-webhook)。
 
-バックエンドの起動手順は [こちら](../backend/README.md)。Swagger UIはローカルの `http://localhost:8000/docs` で確認できます。現状はスタブのため、送信成功だけで保存や認証の実装完了とは判断できません。
+バックエンドをローカルで動かす手順は [こちら](../backend/README.md)。
 
 ## 優先度と保留事項
 

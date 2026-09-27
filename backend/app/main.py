@@ -1,8 +1,12 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.db import init_db
 
 DESCRIPTION = """
 すだち農家向け技能継承システム **パミット** のバックエンドAPI。
@@ -41,7 +45,8 @@ AWS（EC2 + RDS + S3）          記録 / 週次スケジュール生成 / RAG  
 
 ### 現在の状態
 
-**スタブ応答を返しています。** DB接続前でも、アプリ担当・ハード担当が繋ぎ込みを始められます。
+**センサー受信（`sensors`）以外はスタブ応答を返しています。**
+センサー受信は DB に保存します。端末の登録は `python -m app.cli create-device` で行います。
 """
 
 TAGS = [
@@ -91,7 +96,14 @@ TAGS = [
     {"name": "admin", "description": "管理者画面向けの集計。最小限に留める。"},
 ]
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    init_db()
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.app_name,
     version=settings.version,
     description=DESCRIPTION,
