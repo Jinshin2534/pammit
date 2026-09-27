@@ -6,7 +6,9 @@ services:
     ports: ["8000:8000"]
     environment:
       DATABASE_URL: postgresql+psycopg://pammit:pammit@db:5432/pammit
-    depends_on: [db]
+      TTN_WEBHOOK_SECRET: local-dev-secret  # ローカル専用。本番は Secrets Manager から渡す
+    depends_on:
+      db: { condition: service_healthy }
     volumes: ["./app:/app/app"]
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
@@ -16,6 +18,10 @@ services:
       POSTGRES_USER: pammit
       POSTGRES_PASSWORD: pammit
       POSTGRES_DB: pammit
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pammit"]
+      interval: 2s
+      retries: 30
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
 
