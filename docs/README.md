@@ -5,7 +5,7 @@
 **このディレクトリの内容が正（Single Source of Truth）です。**
 予選提出スライドの内容と食い違う場合、こちらが優先します。
 
-`docs/` はこれ単体で完結しています。外部への参照はありません。
+AIの現在の開発範囲と測定結果は[AIの最新説明](ai/README.md)を入口にしてください（2026-10-02更新）。個別の計画書には過去の設計案も残っています。実装やローカル成果物を参照する資料があり、画像・モデル本体はGitへ含めません。
 
 ## システム構成（現時点の設計案）
 
@@ -17,7 +17,8 @@
     カメラV3 / マイク / スピーカー
          ↕ Wi-Fi（スマートフォンのテザリング）
 ■ スマートフォン（Android / React Native）── 頭脳
-    YOLO推論(TFLite) / 判定計算 / 一次応答 / Realtime API 仲介 / アプリ
+    果実検出ONNX Runtime（Pixel 7a検証済み）/ 実の明暗・かぶり（試作評価中）
+    位置付き音声・作業判断・本体アプリへの統合（未完了）
          ↕ LTE
 ■ AWS（EC2 + RDS + S3）
     記録 / 週次スケジュール生成 / RAG
@@ -37,27 +38,49 @@
 | ファイル | 内容 |
 |---|---|
 | [research/README.md](research/README.md) | **現地調査（収穫アルバイト2日間）の記録。要件の出所** |
+| [research/ai-voice-guidance-products.md](research/ai-voice-guidance-products.md) | **既存製品の複数対象検出・位置音声・対象指定方式の比較** |
 
 ### 要件
 
 | ファイル | 内容 |
 |---|---|
+| [ai/README.md](ai/README.md) | **AIの最新説明**。実装済み範囲、Pixel 7aの速度、ラベルと最新評価、接続条件 |
 | [requirements/00-overview.md](requirements/00-overview.md) | 対象者・課題・KPIとその測定方法 |
 | [requirements/01-requirements.md](requirements/01-requirements.md) | 機能要件 F-01〜F-12・非機能要件・スコープ |
 | [requirements/02-domain-model.md](requirements/02-domain-model.md) | ドメインモデル・テーブル設計 |
 | [requirements/03-labels.md](requirements/03-labels.md) | ラベル定義・アノテーション規約 |
 | [requirements/04-api.md](requirements/04-api.md) | **API仕様・実装順序**（アプリ／ハード担当への受け渡し用） |
+| [requirements/05-ai-requirements-draft.md](requirements/05-ai-requirements-draft.md) | **AI要件定義の草案**。確認済み事項、データ監査、未決事項 |
+| [requirements/06-ai-implementation-plan.md](requirements/06-ai-implementation-plan.md) | **10月10日本選向けAI実装計画**。データ判定条件と日程 |
+| [requirements/07-ai-design-review.md](requirements/07-ai-design-review.md) | **AI実装の全体設計レビュー案**。構成、データ、通信、音声、評価、実装順 |
+| [requirements/08-drive-data-audit.md](requirements/08-drive-data-audit.md) | **Driveデータ一次監査**。収穫動画34件・76.93 GB、事後ラベル付けの可能性 |
+| [requirements/09-decision-label-pilot.md](requirements/09-decision-label-pilot.md) | **摘果・摘葉の判断基準と事後ラベル試行**。既存の理由候補、熟練者の確認事項、評価への接続 |
+| [requirements/10-thinning-research-review.md](requirements/10-thinning-research-review.md) | **摘果・摘葉の調査資料レビュー**。本選に採用する設計と検証後に回す項目 |
+| [requirements/11-first-label-pilot-batch.md](requirements/11-first-label-pilot-batch.md) | **第1回ラベル試行セット**。4日分・5場面の小容量クリップと静止画、熟練者確認項目 |
+| [requirements/12-android-inference-check.md](requirements/12-android-inference-check.md) | **既存ONNXモデルのAndroid実機検証**。FP32変換、Pixel 7aでの再現性と速度、残課題 |
+| [requirements/15-fruit-shade-label-audit.md](requirements/15-fruit-shade-label-audit.md) | **実の明暗・葉のかぶりラベルの初回確認**。ラベル件数、未入力、基準実験 |
+| [requirements/16-additional-shade-frames.md](requirements/16-additional-shade-frames.md) | **追加の静止画ラベルセット**。別動画8本の9場面、選別と候補枠 |
+| [requirements/13-p01-provisional-review.md](requirements/13-p01-provisional-review.md) | **P01の暫定画像レビュー**。検出候補の確認と摘果・摘葉判断を保留した根拠 |
+| [requirements/14-pilot-analyst-review.md](requirements/14-pilot-analyst-review.md) | **第1回ラベル試行のAI側レビュー**。全47候補の存在確認、重複・見逃しの疑い |
+| [requirements/handoff-trigger-and-guidance.md](requirements/handoff-trigger-and-guidance.md) | **Piの音声トリガー・単一JPEG・音声案内の引き継ぎ**。実装済みAPIと未決事項 |
 
 ## 未決事項
 
-### 🔴 最優先: 摘果・摘葉が撮れる畑を確保する
+### AIの直近の確認事項
 
-摘果・摘葉を主軸に据えたが、**データが撮れなければこの決定は成立しない。**
+- [ ] 明暗ラベルの「一部が明るい／表面の大半が明るい」を確認する
+- [ ] 実全体を残す新入力で明暗・葉のかぶりを評価する
+- [ ] 誤判定・見逃し・`unknown`の許容上限を熟練者と決める
+- [ ] Pi→Pixel→最初の音声の全経路を実機で測る
+
+### 栽培判断の正解データ
+
+現在の動画は収穫が中心で、実の画像上の明暗・葉のかぶりをラベル付けしている。摘果・摘葉の作業判断へ進むには、適用条件と熟練者の正解判断を別途確認する必要がある。
 
 現地レポート1日目には「すでに2Lに達しているものが多く、本日から収穫開始。例年より少し早い」とある。
 神山町では摘果が9月中旬まで続くと聞いていたが、**畑によって進度が違う。**
 
-- [ ] **摘果・摘葉が撮影できる畑があるか確認する** ← 撮れない場合は主軸を収穫に戻す
+- [ ] 摘果・摘葉の判断基準を適用できるデータを確保する
 
 ### ヒアリング待ち（撮影同行で確認）
 
