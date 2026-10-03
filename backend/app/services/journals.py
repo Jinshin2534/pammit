@@ -1,5 +1,6 @@
 """農園日誌。作業ログ・センサー・天気予報から日ごとの記録を組み立て、PDF にする。"""
 import io
+from pathlib import Path
 from datetime import date, datetime, time, timedelta, timezone
 
 from sqlalchemy import func, select
@@ -8,6 +9,9 @@ from sqlalchemy.orm import Session
 from app.models import JournalNote, Plot, SensorDevice, SensorReading, WeatherForecast, WorkLog
 from app.schemas.plots import WorkType
 from app.services.weather import weather_word
+
+# BIZ UDPゴシック（SIL Open Font License 1.1、app/fonts/OFL.txt）
+FONT_PATH = Path(__file__).resolve().parent.parent / "fonts" / "BIZUDPGothic-Regular.ttf"
 
 JST = timezone(timedelta(hours=9))
 WORK_ORDER = [w.value for w in WorkType]
@@ -69,11 +73,13 @@ def render_pdf(farm_name: str, start: date, end: date, days: list[dict]) -> byte
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import mm
     from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+    from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-    font = "HeiseiKakuGo-W5"
-    pdfmetrics.registerFont(UnicodeCIDFont(font))
+    # フォントを埋め込む。埋め込まないと端末ごとに別の字体で表示され、字の幅が変わって欄からはみ出す
+    font = "BIZUDPGothic"
+    if font not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont(font, str(FONT_PATH)))
     title = ParagraphStyle("title", fontName=font, fontSize=16, leading=22)
     heading = ParagraphStyle("heading", fontName=font, fontSize=12, leading=18, spaceBefore=6)
     cell = ParagraphStyle("cell", fontName=font, fontSize=8.5, leading=11)
