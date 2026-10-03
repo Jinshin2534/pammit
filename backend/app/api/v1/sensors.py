@@ -7,9 +7,11 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import current_user, get_plot_in_farm
 from app.core.config import settings
 from app.db import get_db
-from app.models import SensorDevice, SensorReading
+from app.models import SensorDevice, SensorReading, User
+from app.services.field import soil_pct
 from app.schemas.sensors import (
     LorawanUplink,
     SensorIngest,
@@ -100,14 +102,19 @@ def ingest_lorawan(
     "/plots/{plot_id}/sensor-readings",
     response_model=list[SensorReadingOut],
     summary="測定値を参照する",
-    description="`from` / `to` は日本時間の日付。新しい順に最大1000件。",
+    description=(
+        "`from` / `to` は日本時間の日付。新しい順に最大1000件。\n\n"
+        "`soil_moisture_pct` は園地の校正値（乾燥時・飽和時の生値）から換算する。校正値がなければ null。"
+    ),
 )
 def list_readings(
     plot_id: int,
     date_from: date | None = Query(default=None, alias="from"),
     date_to: date | None = Query(default=None, alias="to"),
+    user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> list[SensorReadingOut]:
+    plot = get_plot_in_farm(db, plot_id, user.farm_id)
     stmt = (
         select(SensorReading)
         .join(SensorDevice, SensorReading.sensor_device_id == SensorDevice.id)
@@ -120,7 +127,8 @@ def list_readings(
     if date_to:
         stmt = stmt.where(SensorReading.measured_at < _jst_day_start(date_to + timedelta(days=1)))
     return [
-        SensorReadingOut.model_validate(r, from_attributes=True)
+        SensorReadingOut.model_validate(r, from_attributes=True).model_copy(
+            update={"soil_moisture_pct": soil_pct(r.soil_moisture_raw, plot)})
         for r in db.scalars(stmt)
     ]
 

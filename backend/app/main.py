@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -8,6 +9,7 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.errors import install_error_handlers
 from app.db import init_db
+from app.jobs import daily_loop
 
 DESCRIPTION = """
 すだち農家向けの作業支援システム「パミット」の API。資料はリポジトリの `docs/` にある。
@@ -29,6 +31,7 @@ TAGS = [
     {"name": "schedules", "description": "予定。人が1日ずつ入力する。"},
     {"name": "work-sessions", "description": "作業の開始から終了まで。帽子を使わない作業も記録する。"},
     {"name": "work-logs", "description": "作業ログ。作業の終了時に自動で作られる。"},
+    {"name": "field", "description": "農園画面（土壌水分・天気・灌水の助言）と今日のひとこと。"},
     {"name": "sensors", "description": "園地センサーからの受信と、測定値の参照。"},
     {"name": "evaluation", "description": "判定精度の評価結果。"},
     {"name": "health", "description": "動作確認。"},
@@ -38,7 +41,10 @@ TAGS = [
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     init_db()
+    task = asyncio.create_task(daily_loop()) if settings.run_daily_job else None
     yield
+    if task:
+        task.cancel()
 
 
 app = FastAPI(

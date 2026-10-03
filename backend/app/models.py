@@ -198,3 +198,47 @@ class WorkLog(Base):
 
     plot: Mapped[Plot] = relationship(lazy="joined")
     user: Mapped[User] = relationship(lazy="joined")
+
+
+# --- 農園画面・今日のひとこと ---
+
+
+class IrrigationSettings(Base):
+    """灌水の助言で使う園地ごとの目安。行がなければ既定値を使う。"""
+
+    __tablename__ = "irrigation_settings"
+
+    plot_id: Mapped[int] = mapped_column(ForeignKey("plots.id"), primary_key=True)
+    rain_skip_mm: Mapped[float] = mapped_column(Float, default=10.0)
+    hot_temp_c: Mapped[float] = mapped_column(Float, default=33.0)
+
+
+class WeatherForecast(Base):
+    __tablename__ = "weather_forecasts"
+    __table_args__ = (UniqueConstraint("plot_id", "date"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    plot_id: Mapped[int] = mapped_column(ForeignKey("plots.id"), index=True)
+    date: Mapped[date] = mapped_column(Date)
+    temp_max: Mapped[float | None] = mapped_column(Float)
+    temp_min: Mapped[float | None] = mapped_column(Float)
+    precip_mm: Mapped[float | None] = mapped_column(Float)
+    weather_code: Mapped[int | None] = mapped_column(Integer)
+    fetched_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+class DailyAdvice(Base):
+    """今日のひとこと。経営体ごとに1日1件。"""
+
+    __tablename__ = "daily_advices"
+    __table_args__ = (UniqueConstraint("farm_id", "date"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"))
+    date: Mapped[date] = mapped_column(Date)
+    summary: Mapped[str] = mapped_column(Text)
+    body: Mapped[str] = mapped_column(Text)
+    # 生成に使った材料。あとから「なぜこの文になったか」を確かめられるようにする
+    context: Mapped[dict[str, Any]] = mapped_column(JSON)
+    model: Mapped[str] = mapped_column(String(50))
+    generated_at: Mapped[datetime] = mapped_column(UTCDateTime)

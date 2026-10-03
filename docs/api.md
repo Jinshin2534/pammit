@@ -37,9 +37,9 @@
 | GET | `/plots/{id}` | 園地の詳細 | 実装済み |
 | POST | `/plots` | 園地の登録（owner） | 実装済み |
 | PATCH | `/plots/{id}` | 園地の変更（owner）。ハウス / 露地、土壌水分の目安と校正値も | 実装済み |
-| GET | `/plots/summary` | 全園地の土壌水分と助言の要約（農園画面の切り替え用） | 予定 |
-| GET | `/plots/{id}/field-summary` | 農園画面の表示内容（土壌水分の現在値・前日差・明日の予測、助言、明日の天気） | 予定 |
-| GET | `/plots/{id}/sensor-readings` | 測定値の推移 | 実装済み |
+| GET | `/plots/summary` | 全園地の農園画面の中身をまとめて返す（切り替え用） | 実装済み |
+| GET | `/plots/{id}/field-summary` | 農園画面の表示内容（土壌水分の現在値・前日差・明日の予測、助言、明日の天気） | 実装済み |
+| GET | `/plots/{id}/sensor-readings` | 測定値の推移。土壌水分は園地の校正値で%に換算 | 実装済み |
 
 ### 予定・今日のひとこと
 
@@ -49,7 +49,7 @@
 | POST | `/schedules` | 予定の登録 | 実装済み |
 | PATCH | `/schedules/{id}` | 予定の変更 | 実装済み |
 | DELETE | `/schedules/{id}` | 予定の削除 | 実装済み |
-| GET | `/daily-advice` | 今日のひとこと（`?date=`） | 予定 |
+| GET | `/daily-advice` | 今日のひとこと（`?date=`） | 実装済み |
 
 ### 作業
 

@@ -8,6 +8,7 @@ from app.db import SessionLocal, init_db
 from app.main import app
 from app.models import SensorDevice
 from app.services.sensors import PayloadError, decode_lorawan_payload, generate_device_key, hash_device_key
+from tests.helpers import login, make_farm
 
 SECRET = "test-webhook-secret"
 
@@ -75,8 +76,17 @@ class IngestTests(unittest.TestCase):
         init_db()
         cls.client = TestClient(app)
 
+    def new_plot(self) -> int:
+        """センサーを置く園地を作り、その園地の値を読めるようにログインしておく。"""
+        farm = make_farm()
+        self.headers = login(self.client, farm, farm.worker_id)
+        return farm.plot_ids[0]
+
+    def readings_of(self, plot_id: int, query: str = "") -> list[dict]:
+        return self.client.get(f"/api/v1/plots/{plot_id}/sensor-readings{query}", headers=self.headers).json()
+
     def test_wifi_ingest_saves_and_ignores_resend(self) -> None:
-        key = register_device(plot_id=101)
+        key = register_device(plot_id=(pid := self.new_plot()))
         body = {"readings": [reading("2026-10-01T09:00:00+09:00"), reading("2026-10-01T09:30:00+09:00")]}
 
         first = self.client.post("/api/v1/ingest/sensor", headers={"X-Device-Key": key}, json=body)
@@ -84,13 +94,13 @@ class IngestTests(unittest.TestCase):
 
         self.assertEqual(first.json(), {"accepted": 2, "duplicated": 0})
         self.assertEqual(again.json(), {"accepted": 0, "duplicated": 2})
-        rows = self.client.get("/api/v1/plots/101/sensor-readings").json()
+        rows = self.readings_of(pid)
         self.assertEqual(len(rows), 2)
         self.assertEqual(rows[0]["source"], "wifi")
         self.assertEqual(rows[0]["soil_moisture_raw"], 512)
 
     def test_same_instant_in_other_timezone_is_duplicate(self) -> None:
-        key = register_device(plot_id=102)
+        key = register_device(plot_id=(pid := self.new_plot()))
         headers = {"X-Device-Key": key}
         self.client.post("/api/v1/ingest/sensor", headers=headers,
                          json={"readings": [reading("2026-10-01T09:00:00+09:00")]})
@@ -100,12 +110,12 @@ class IngestTests(unittest.TestCase):
 
     def test_wifi_ingest_accepts_missing_battery(self) -> None:
         # USB 給電中は電池残量を測れないので、省略しても保存できる
-        key = register_device(plot_id=104)
+        key = register_device(plot_id=(pid := self.new_plot()))
         row = reading("2026-10-01T09:00:00+09:00")
         del row["battery_pct"]
         r = self.client.post("/api/v1/ingest/sensor", headers={"X-Device-Key": key}, json={"readings": [row]})
         self.assertEqual(r.json(), {"accepted": 1, "duplicated": 0})
-        saved = self.client.get("/api/v1/plots/104/sensor-readings").json()
+        saved = self.readings_of(pid)
         self.assertIsNone(saved[0]["battery_pct"])
 
     def test_wifi_ingest_rejects_unknown_key(self) -> None:
@@ -114,13 +124,13 @@ class IngestTests(unittest.TestCase):
         self.assertEqual(r.status_code, 401)
 
     def test_wifi_ingest_rejects_naive_time(self) -> None:
-        key = register_device(plot_id=103)
+        key = register_device(plot_id=(pid := self.new_plot()))
         r = self.client.post("/api/v1/ingest/sensor", headers={"X-Device-Key": key},
                              json={"readings": [reading("2026-10-01T09:00:00")]})
         self.assertEqual(r.status_code, 422)
 
     def test_lorawan_ingest_saves_decoded_values(self) -> None:
-        register_device(plot_id=201, dev_eui="70B3D57ED0012345")
+        register_device(plot_id=(pid := self.new_plot()), dev_eui="70B3D57ED0012345")
         payload = bytes.fromhex("010C301AB80822020057")
         body = uplink("70b3d57ed0012345", payload)
 
@@ -129,13 +139,13 @@ class IngestTests(unittest.TestCase):
 
         self.assertEqual(first.json(), {"accepted": 1, "duplicated": 0})
         self.assertEqual(again.json(), {"accepted": 0, "duplicated": 1})
-        rows = self.client.get("/api/v1/plots/201/sensor-readings").json()
+        rows = self.readings_of(pid)
         self.assertEqual(rows[0]["source"], "lorawan")
         self.assertAlmostEqual(rows[0]["temperature"], 31.2)
         self.assertAlmostEqual(rows[0]["pressure"], 1008.2)
 
     def test_lorawan_rejects_bad_secret_unknown_device_and_bad_payload(self) -> None:
-        register_device(plot_id=202, dev_eui="70B3D57ED00ABCDE")
+        register_device(plot_id=(pid := self.new_plot()), dev_eui="70B3D57ED00ABCDE")
         good = bytes.fromhex("010C301AB80822020057")
         post = self.client.post
         self.assertEqual(
@@ -149,12 +159,12 @@ class IngestTests(unittest.TestCase):
                  json=uplink("70B3D57ED00ABCDE", b"\x01\x02")).status_code, 422)
 
     def test_readings_filtered_by_jst_date(self) -> None:
-        key = register_device(plot_id=301)
+        key = register_device(plot_id=(pid := self.new_plot()))
         self.client.post("/api/v1/ingest/sensor", headers={"X-Device-Key": key}, json={"readings": [
             reading("2026-10-01T23:30:00+09:00"),
             reading("2026-10-02T00:30:00+09:00"),
         ]})
-        rows = self.client.get("/api/v1/plots/301/sensor-readings?from=2026-10-02&to=2026-10-02").json()
+        rows = self.readings_of(pid, "?from=2026-10-02&to=2026-10-02")
         self.assertEqual(len(rows), 1)
 
 
