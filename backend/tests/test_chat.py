@@ -65,18 +65,15 @@ class ChatTests(unittest.TestCase):
         init_db()
         cls.client = TestClient(app)
 
-    def test_without_key_returns_related_knowledge(self) -> None:
+    def test_without_key_returns_503_and_saves_nothing(self) -> None:
         farm = make_farm()
-        add_knowledge(farm_id=farm.farm_id)
         headers = login(self.client, farm, farm.worker_id)
         thread = self.client.post("/api/v1/chat/threads", headers=headers, json={}).json()
         r = self.client.post(f"/api/v1/chat/threads/{thread['id']}/messages", headers=headers,
                              json={"content": "密集している実はどれから摘む？"})
-        self.assertIn("小さい実", r.json()["content"])
-        threads = self.client.get("/api/v1/chat/threads", headers=headers).json()
-        self.assertEqual(threads[0]["title"], "密集している実はどれから摘む？")
+        self.assertEqual((r.status_code, r.json()["error"]["code"]), (503, "ai_unavailable"))
         messages = self.client.get(f"/api/v1/chat/threads/{thread['id']}/messages", headers=headers).json()
-        self.assertEqual([m["role"] for m in messages], ["user", "assistant"])
+        self.assertEqual(messages, [])
 
     def test_function_calling_loop(self) -> None:
         farm = make_farm()
@@ -89,6 +86,8 @@ class ChatTests(unittest.TestCase):
             r = self.client.post(f"/api/v1/chat/threads/{thread['id']}/messages", headers=headers,
                                  json={"content": "混んでいるときは？"})
         self.assertEqual(r.json()["content"], "小さい実から摘みましょう。")
+        threads = self.client.get("/api/v1/chat/threads", headers=headers).json()
+        self.assertEqual(threads[0]["title"], "混んでいるときは？")
         tool_result = fake.calls[1]["messages"][-1]
         self.assertEqual(tool_result["role"], "tool")
         self.assertIn("小さい実", tool_result["content"])

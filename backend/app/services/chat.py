@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.errors import api_error
 from app.models import ChatMessage, ChatThread, Plot, Schedule, User, WorkLog, WorkSession
 from app.services import knowledge, llm
 from app.services.field import field_summary
@@ -100,14 +101,6 @@ def _context_lines(db: Session, user: User, thread: ChatThread) -> str:
     return "\n".join(lines)
 
 
-def _fallback_answer(db: Session, user: User, question: str) -> str:
-    hits = knowledge.search(db, user.farm_id, question, limit=2)
-    if not hits:
-        return "今は AI 相談を使えません。経験のある人に確かめてください。"
-    snippets = "\n\n".join(h["content"] for h in hits)
-    return f"今は AI 相談を使えないため、関係しそうな知識を表示します。\n\n{snippets}"
-
-
 def answer(db: Session, user: User, thread: ChatThread, question: str) -> ChatMessage:
     """質問を保存し、回答を作って保存する。"""
     now = datetime.now(timezone.utc)
@@ -115,7 +108,8 @@ def answer(db: Session, user: User, thread: ChatThread, question: str) -> ChatMe
     db.flush()
     content, tools_used = _ask_llm(db, user, thread)
     if content is None:
-        content, tools_used = _fallback_answer(db, user, question), []
+        db.rollback()  # 答えられなかった質問は残さない
+        api_error(503, "ai_unavailable", "AI 相談は今使えません。しばらくしてからもう一度試してください")
     now = datetime.now(timezone.utc)
     reply = ChatMessage(thread_id=thread.id, role="assistant", content=content, tools_used=tools_used, created_at=now)
     db.add(reply)
