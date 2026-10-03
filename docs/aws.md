@@ -22,7 +22,7 @@
 |---|---|
 | リージョン | 東京（ap-northeast-1） |
 | HTTPS | Caddy が Let's Encrypt から自動取得。ドメインは `<固定IPのドットをハイフンに>.sslip.io` |
-| 秘密情報 | DB パスワード・TTN シークレットは Secrets Manager。リポジトリには置かない |
+| 秘密情報 | DB パスワード・TTN シークレット・ログイン用の鍵（`pammit/app`）・OpenAI のキー（`pammit/openai`）は Secrets Manager。リポジトリには置かない。ログイン用の鍵と OpenAI のキーは、API が起動時に直接読む |
 | OS イメージ | AMI の ID を `infra/lib/pammit-stack.ts` に固定している。最新版を自動で使うと、新しい版が出たあとのデプロイでサーバーが作り直されるため。OS を上げるときは ID を書き換えてデプロイする（固定IPと DB のデータは残る） |
 | サーバーへの入り方 | SSH は開けていない。SSM（`infra/scripts/*.sh`）経由で操作する |
 | 概算費用 | 月 4,000〜5,000円（EC2・RDS・固定IP・Secrets Manager） |
@@ -39,6 +39,9 @@ npx cdk diff                  # 変更点の確認。deploy の前に必ず見�
 ./scripts/deploy.sh           # 構築・更新。コードを変えたらこれ
 ./scripts/create-device.sh --name 3番ハウス-01 --plot-id 3   # 端末登録。デバイスキーが表示される
 ./scripts/list-devices.sh     # 登録済み端末と最終受信時刻
+./scripts/seed.sh             # デモ用の農園・作業者を入れる。PIN が表示される
+./scripts/reset-pin.sh --user-id 2   # PIN を発行し直す
+./scripts/set-openai-key.sh   # OpenAI の API キーを入れる（入れたら deploy.sh）
 ./scripts/show-ttn-secret.sh  # TTN の Webhook に設定するシークレット
 ```
 

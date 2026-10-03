@@ -40,6 +40,23 @@ export class PammitStack extends cdk.Stack {
       generateSecretString: { passwordLength: 40, excludePunctuation: true },
     });
 
+    // アプリが起動時に直接読む秘密情報（サーバーの環境変数には置かない）
+    const appSecret = new secretsmanager.Secret(this, 'AppSecret', {
+      secretName: 'pammit/app',
+      description: 'JWT signing key for the pammit API',
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({}),
+        generateStringKey: 'jwt_secret',
+        passwordLength: 64,
+        excludePunctuation: true,
+      },
+    });
+    // 値は手で入れる（infra/scripts/set-openai-key.sh）。入るまでは仮の値のまま
+    const openAiSecret = new secretsmanager.Secret(this, 'OpenAiSecret', {
+      secretName: 'pammit/openai',
+      description: 'OpenAI API key for the pammit API',
+    });
+
     // --- DB ---
     const db = new rds.DatabaseInstance(this, 'Db', {
       engine: rds.DatabaseInstanceEngine.postgres({ version: rds.PostgresEngineVersion.VER_16 }),
@@ -91,6 +108,8 @@ export class PammitStack extends cdk.Stack {
     image.repository.grantPull(role);
     db.secret!.grantRead(role);
     ttnWebhookSecret.grantRead(role);
+    appSecret.grantRead(role);
+    openAiSecret.grantRead(role);
     imageParam.grantRead(role);
     bucket.grantReadWrite(role);
 
