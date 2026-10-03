@@ -1,6 +1,6 @@
 # データモデル
 
-PostgreSQL 16（pgvector 拡張）を使う。組織・人、園地、予定と作業（`detections`・`voice_notes` を除く）、センサーのテーブルは実装済み。ほかは設計段階。
+PostgreSQL 16（pgvector 拡張）を使う。組織・人、園地、予定と作業（`detections`・`voice_notes` を除く）、センサーと天気、今日のひとことのテーブルは実装済み。ほかは設計段階。
 
 時刻はタイムゾーン付きで保存し、端末の時刻とサーバーの受信時刻を分けて持つ。
 書き込みの重複は、端末が作る `client_event_id` の一意制約で防ぐ。
@@ -58,7 +58,8 @@ erDiagram
 |---|---|---|
 | `sensor_devices` | `name`, `plot_id`, `key_hash`, `dev_eui`, `last_seen_at` | 実装済み。デバイスキーはハッシュで保存する |
 | `sensor_readings` | `sensor_device_id`, `measured_at`, `temperature`, `humidity`, `pressure`, `soil_moisture_raw`, `soil_moisture_pct`, `battery_pct`, `source` | 実装済み。同じ端末・同じ測定時刻は1件だけ |
-| `weather_forecasts` | `plot_id`, `date`, `temp_max`, `precip_mm`, `weather`, `fetched_at` | 気象庁の予報を1日1回取り込む |
+| `weather_forecasts` | `plot_id`, `date`, `temp_max`, `temp_min`, `precip_mm`, `weather_code`, `fetched_at` | 天気予報（Open-Meteo の気象庁モデル）を1日1回取り込む |
+| `irrigation_settings` | `plot_id`, `rain_skip_mm`, `hot_temp_c` | 灌水の助言で使う雨量・気温の目安。行がなければ既定値（10mm・33℃） |
 
 土壌水分は生値と換算値の両方を持つ。校正をやり直したとき、生値から過去の値を計算し直せるようにするため。
 
@@ -66,7 +67,7 @@ erDiagram
 
 | テーブル | 主な列 | 備考 |
 |---|---|---|
-| `daily_advices` | `farm_id`, `date`, `summary`, `body`, `context` | 今日のひとこと。生成に使った材料を `context` に残す |
+| `daily_advices` | `farm_id`, `date`, `summary`, `body`, `context`, `model`, `generated_at` | 今日のひとこと。生成に使った材料を `context` に残す |
 | `chat_threads` | `user_id`, `session_id`, `title`, `created_at` | `session_id` は作業中の相談のときだけ入る |
 | `chat_messages` | `thread_id`, `role`, `content`, `created_at` | |
 | `knowledge_documents` | `title`, `source_type`, `body` | 相談に使う知識の原本 |

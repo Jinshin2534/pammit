@@ -6,3 +6,4 @@ SQLAlchemy==2.1.1
 psycopg[binary]==3.3.6
 PyJWT==2.10.1
 boto3==1.40.70
+openai==3.24.0

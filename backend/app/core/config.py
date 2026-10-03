@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     pin_lock_minutes: int = 15
 
     openai_api_key: str | None = None
+    openai_model: str = "gpt-4.1-mini"
+
+    # 園地に緯度経度がないときに天気予報で使う位置（神山町役場付近）
+    default_latitude: float = 33.967
+    default_longitude: float = 134.350
+    # 毎朝の処理（天気の取り込み、今日のひとことの生成）を始める時刻（日本時間）
+    daily_job_hour: int = 5
+    run_daily_job: bool = True
 
     # AWS 上では、上の秘密情報を Secrets Manager から読む（サーバーの環境変数には置かない）
     aws_region: str = "ap-northeast-1"
