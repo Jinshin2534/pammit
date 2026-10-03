@@ -98,6 +98,16 @@ class IngestTests(unittest.TestCase):
                              json={"readings": [reading("2026-10-01T00:00:00Z")]})
         self.assertEqual(r.json(), {"accepted": 0, "duplicated": 1})
 
+    def test_wifi_ingest_accepts_missing_battery(self) -> None:
+        # USB 給電中は電池残量を測れないので、省略しても保存できる
+        key = register_device(plot_id=104)
+        row = reading("2026-10-01T09:00:00+09:00")
+        del row["battery_pct"]
+        r = self.client.post("/api/v1/ingest/sensor", headers={"X-Device-Key": key}, json={"readings": [row]})
+        self.assertEqual(r.json(), {"accepted": 1, "duplicated": 0})
+        saved = self.client.get("/api/v1/plots/104/sensor-readings").json()
+        self.assertIsNone(saved[0]["battery_pct"])
+
     def test_wifi_ingest_rejects_unknown_key(self) -> None:
         r = self.client.post("/api/v1/ingest/sensor", headers={"X-Device-Key": "wrong"},
                              json={"readings": [reading("2026-10-01T09:00:00+09:00")]})
