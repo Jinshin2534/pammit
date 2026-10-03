@@ -19,10 +19,14 @@ class SensorReading(BaseModel):
         description="**ADCの生値をそのまま送る。** 換算はサーバーで行う（校正式を直したとき過去データを再計算できるようにするため）",
         examples=[512],
     )
-    battery_pct: int = Field(
+    battery_pct: int | None = Field(
+        default=None,
         ge=0,
         le=100,
-        description="**必ず入れる。** 常設デバイスで電池切れに気づけないのは致命的",
+        description=(
+            "**測れるなら必ず入れる。** 常設デバイスで電池切れに気づけないのは致命的。"
+            "USB 給電などで測れない間は省略か null（100 などの固定値は入れない）"
+        ),
         examples=[87],
     )
 
@@ -95,5 +99,5 @@ class SensorReadingOut(SensorReading):
     sensor_device_id: int
     measured_at: datetime
     source: str = Field(description="`wifi` | `lorawan`")
-    battery_pct: int | None = Field(default=None, description="LoRaWAN で欠測だった場合のみ null")
+    battery_pct: int | None = Field(default=None, description="測れなかった場合は null")
     soil_moisture_pct: float | None = Field(default=None, description="サーバーで換算した値（0-100）")

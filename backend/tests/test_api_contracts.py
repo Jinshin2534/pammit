@@ -25,13 +25,13 @@ class ApiContractTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    def test_sensor_reading_requires_battery_percentage(self) -> None:
+    def test_sensor_reading_rejects_battery_out_of_range(self) -> None:
         response = self.client.post(
             "/api/v1/ingest/sensor",
             headers={"X-Device-Key": "stub-device-key"},
             json={
                 "readings": [
-                    {"measured_at": datetime.now(timezone.utc).isoformat()}
+                    {"measured_at": datetime.now(timezone.utc).isoformat(), "battery_pct": 150}
                 ]
             },
         )
