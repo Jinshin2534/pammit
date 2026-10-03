@@ -48,10 +48,10 @@ SEED_PLOTS = [
 ]
 SEED_USERS = [
     {"name": "近未来 すだち子", "role": "owner", "worker_type": "農家"},
-    {"name": "長谷川", "role": "worker", "worker_type": "後継者"},
-    {"name": "野﨑", "role": "worker", "worker_type": "アルバイト"},
-    {"name": "永田", "role": "worker", "worker_type": "アルバイト"},
-    {"name": "大久保", "role": "worker", "worker_type": "アルバイト"},
+    {"name": "長谷川 真白", "role": "worker", "worker_type": "後継者"},
+    {"name": "野﨑 仁心", "role": "worker", "worker_type": "アルバイト"},
+    {"name": "永田 雄也", "role": "worker", "worker_type": "アルバイト"},
+    {"name": "大久保 杏南", "role": "worker", "worker_type": "アルバイト"},
 ]
 
 
