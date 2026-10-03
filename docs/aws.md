@@ -23,6 +23,7 @@
 | リージョン | 東京（ap-northeast-1） |
 | HTTPS | Caddy が Let's Encrypt から自動取得。ドメインは `<固定IPのドットをハイフンに>.sslip.io` |
 | 秘密情報 | DB パスワード・TTN シークレットは Secrets Manager。リポジトリには置かない |
+| OS イメージ | AMI の ID を `infra/lib/pammit-stack.ts` に固定している。最新版を自動で使うと、新しい版が出たあとのデプロイでサーバーが作り直されるため。OS を上げるときは ID を書き換えてデプロイする（固定IPと DB のデータは残る） |
 | サーバーへの入り方 | SSH は開けていない。SSM（`infra/scripts/*.sh`）経由で操作する |
 | 概算費用 | 月 4,000〜5,000円（EC2・RDS・固定IP・Secrets Manager） |
 
@@ -82,11 +83,11 @@ Content-Type: application/json
 | `200 {"accepted":1,"duplicated":0}` | 保存した |
 | `200 {"accepted":0,"duplicated":1}` | 同じ端末・同じ時刻の値がすでにある（再送は安全） |
 | `401` | デバイスキーが違う |
-| `422` | JSON の形が違う。`measured_at` のタイムゾーン抜け、`battery_pct` 抜けが多い |
+| `422` | JSON の形が違う。`measured_at` のタイムゾーン抜けが多い |
 
 - `measured_at` はタイムゾーン付き。ESP32 は NTP で時刻を合わせる（`configTime(9 * 3600, 0, "ntp.nict.jp")`）。
 - 送れなかった分は溜めておき、次回まとめて送ってよい（1回100件まで）。
-- 取れなかった項目は `null` か省略。`battery_pct` だけは必須。
+- 取れなかった項目は `null` か省略。`battery_pct` は測れるなら入れる。測れない間は省略し、固定値（100 など）は入れない。
 
 curl での確認:
 

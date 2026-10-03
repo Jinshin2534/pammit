@@ -125,7 +125,9 @@ export class PammitStack extends cdk.Stack {
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.SMALL),
-      machineImage: ec2.MachineImage.latestAmazonLinux2023({ cpuType: ec2.AmazonLinuxCpuType.ARM_64 }),
+      // AMI は固定する。「最新版」にすると、AWS が新しい版を出すたびに deploy でインスタンスが作り直される。
+      // OS を上げたいときは、ここを新しい AMI ID に書き換えて作り直す（固定IPと RDS のデータは残る）
+      machineImage: ec2.MachineImage.genericLinux({ 'ap-northeast-1': 'ami-01cc4a16aec1f3e09' }), // AL2023 arm64
       securityGroup: sg,
       role,
       userData,

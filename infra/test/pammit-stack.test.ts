@@ -59,3 +59,7 @@ test('セキュリティグループの説明文は ASCII のみ（EC2 の制約
   }
   for (const d of descriptions) expect(d).toMatch(ascii);
 });
+
+test('AMI は固定（deploy のたびに EC2 が作り直されないように）', () => {
+  template.hasResourceProperties('AWS::EC2::Instance', { ImageId: 'ami-01cc4a16aec1f3e09' });
+});
