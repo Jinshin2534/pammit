@@ -16,7 +16,8 @@ from app.schemas.detections import DetectionBatch, DetectionBatchResult
 from app.schemas.plots import HAT_WORK_TYPES, WorkType
 from app.schemas.sessions import WorkSession as WorkSessionOut
 from app.schemas.sessions import WorkSessionCreate, WorkSessionFinish
-from app.services.voice_notes import attach_transcript, save_audio
+from app.services import storage
+from app.services.voice_notes import attach_transcript
 
 router = APIRouter(prefix="/work-sessions", tags=["work-sessions"])
 
@@ -190,7 +191,7 @@ async def post_voice_note(
 
     suffix = Path(file.filename or "").suffix or ".m4a"
     key = f"voice-notes/{s.farm_id}/{s.id}/{client_event_id}{suffix}"
-    await run_in_threadpool(save_audio, key, data, content_type)
+    await run_in_threadpool(storage.put, key, data, content_type)
     note = VoiceNote(client_event_id=client_event_id, farm_id=s.farm_id, session_id=s.id, user_id=user.id,
                      storage_key=key, content_type=content_type, created_at=datetime.now(timezone.utc))
     db.add(note)

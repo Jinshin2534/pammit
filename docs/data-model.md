@@ -1,6 +1,6 @@
 # データモデル
 
-PostgreSQL 16（pgvector 拡張）を使う。`detections`・`journal_notes`・`evaluation_runs` 以外のテーブルは実装済み。ほかは設計段階。
+PostgreSQL 16（pgvector 拡張）を使う。`detections`・`evaluation_runs` 以外のテーブルは実装済み。ほかは設計段階。
 
 時刻はタイムゾーン付きで保存し、端末の時刻とサーバーの受信時刻を分けて持つ。
 書き込みの重複は、端末が作る `client_event_id` の一意制約で防ぐ。
@@ -78,4 +78,4 @@ erDiagram
 
 | テーブル | 主な列 | 備考 |
 |---|---|---|
-| `journal_notes` | `farm_id`, `date`, `note` | 手で書く備考だけを保存する。気温・天気・作業人数・作業内容は、作業ログと天気予報から表示のたびに組み立てる |
+| `journal_notes` | `farm_id`, `date`, `note`, `updated_by`, `updated_at` | 手で書く備考だけを保存する。ほかの欄は表示のたびに組み立てる（気温はセンサーの最高・最低、天気はその日の朝に取り込んだ予報、作業人数と作業内容は作業ログ） |
