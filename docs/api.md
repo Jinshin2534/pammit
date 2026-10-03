@@ -79,9 +79,10 @@
 
 | メソッド | パス | 用途 | 状態 |
 |---|---|---|---|
-| GET | `/journals` | 日ごとの日誌（`?from=&to=`） | 予定 |
-| PUT | `/journals/{date}/note` | 備考の保存 | 予定 |
-| GET | `/journals/export.pdf` | PDF の出力（`?from=&to=`） | 予定 |
+| GET | `/journals` | 日ごとの日誌（`?from=&to=`、1年以内）。作業のない日も返す（owner） | 実装済み |
+| PUT | `/journals/{date}/note` | 備考の保存。空にすると消す（owner） | 実装済み |
+| POST | `/journals/export` | PDF を作り、10分間だけ開ける URL を返す（`?from=&to=`、owner）。アプリはこの URL をブラウザで開く | 実装済み |
+| GET | `/journals/export.pdf` | PDF をそのまま返す（動作確認用、owner） | 実装済み |
 
 ### センサー
 

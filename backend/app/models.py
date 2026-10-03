@@ -310,3 +310,20 @@ class VoiceNote(Base):
     transcribed_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     knowledge_document_id: Mapped[int | None] = mapped_column(ForeignKey("knowledge_documents.id"))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
+
+
+# --- 農園日誌 ---
+
+
+class JournalNote(Base):
+    """日誌の備考。ほかの欄（天気・気温・作業）は表示のたびに記録から組み立てる。"""
+
+    __tablename__ = "journal_notes"
+    __table_args__ = (UniqueConstraint("farm_id", "date"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"))
+    date: Mapped[date] = mapped_column(Date)
+    note: Mapped[str] = mapped_column(Text)
+    updated_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime)

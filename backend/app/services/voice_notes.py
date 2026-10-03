@@ -3,27 +3,13 @@
 文字は相談に使う知識に加える。音声は聞き直せるように保存する。
 """
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.models import VoiceNote, WorkSession
 from app.services import knowledge
 
 JST = timezone(timedelta(hours=9))
-
-
-def save_audio(key: str, data: bytes, content_type: str) -> None:
-    if settings.upload_bucket:
-        import boto3
-
-        boto3.client("s3", region_name=settings.aws_region).put_object(
-            Bucket=settings.upload_bucket, Key=key, Body=data, ContentType=content_type)
-    else:
-        path = Path(settings.local_upload_dir) / key
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
 
 
 def attach_transcript(db: Session, note: VoiceNote, text: str) -> None:
