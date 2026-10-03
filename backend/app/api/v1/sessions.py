@@ -2,21 +2,21 @@ from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Query, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import current_user, get_plot_in_farm
 from app.core.errors import api_error
-from app.db import SessionLocal, get_db
+from app.db import get_db
 from app.models import JudgmentParams, Schedule, User, VoiceNote, WorkLog, WorkSession
 from app.schemas.chat import VoiceNote as VoiceNoteOut
 from app.schemas.detections import DetectionBatch, DetectionBatchResult
 from app.schemas.plots import HAT_WORK_TYPES, WorkType
 from app.schemas.sessions import WorkSession as WorkSessionOut
 from app.schemas.sessions import WorkSessionCreate, WorkSessionFinish
-from app.services.voice_notes import save_audio, transcribe_note
+from app.services.voice_notes import attach_transcript, save_audio
 
 router = APIRouter(prefix="/work-sessions", tags=["work-sessions"])
 
@@ -162,17 +162,17 @@ def post_detections(
     status_code=status.HTTP_201_CREATED,
     summary="「今日の気づき」の音声を送る",
     description=(
-        "`multipart/form-data` で `file`（音声ファイル、10MB まで）と `client_event_id` を送る。\n\n"
-        "文字起こしは受け取ったあとで行う。済むまで `transcript` は null。"
-        "同じ `client_event_id` で送り直した場合は、登録済みのものを 200 で返す。"
+        "`multipart/form-data` で `file`（音声ファイル、10MB まで）、`client_event_id`、"
+        "`transcript`（スマートフォンで文字に起こした内容）を送る。\n\n"
+        "`transcript` は相談に使う知識にも加える。同じ `client_event_id` で送り直した場合は、登録済みのものを 200 で返す。"
     ),
 )
 async def post_voice_note(
     session_id: int,
-    background: BackgroundTasks,
     response: Response,
     file: UploadFile = File(),
     client_event_id: UUID = Form(),
+    transcript: str = Form(min_length=1, max_length=5000),
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> VoiceNoteOut:
@@ -195,7 +195,7 @@ async def post_voice_note(
                      storage_key=key, content_type=content_type, created_at=datetime.now(timezone.utc))
     db.add(note)
     db.commit()
-    background.add_task(_transcribe_in_background, note.id)
+    attach_transcript(db, note, transcript.strip())
     return _voice_note(note)
 
 
@@ -207,8 +207,3 @@ def list_voice_notes(session_id: int, user: User = Depends(current_user), db: Se
 
 def _voice_note(n: VoiceNote) -> VoiceNoteOut:
     return VoiceNoteOut(id=n.id, session_id=n.session_id, transcript=n.transcript, created_at=n.created_at)
-
-
-def _transcribe_in_background(note_id: int) -> None:
-    with SessionLocal() as db:
-        transcribe_note(db, db.get(VoiceNote, note_id))

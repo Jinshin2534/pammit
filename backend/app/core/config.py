@@ -30,7 +30,6 @@ class Settings(BaseSettings):
 
     openai_api_key: str | None = None
     openai_model: str = "gpt-4.1-mini"
-    openai_transcribe_model: str = "whisper-1"
 
     # 「今日の気づき」の音声の置き場所。未設定ならローカルのフォルダに置く（開発・テスト用）
     upload_bucket: str | None = None

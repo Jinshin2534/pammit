@@ -60,7 +60,7 @@
 | GET | `/work-sessions/{id}` | 作業の詳細 | 実装済み |
 | POST | `/work-sessions/{id}/finish` | 作業の終了。作業ログを作る | 実装済み |
 | POST | `/work-sessions/{id}/detections` | 判定結果の登録。形を AI 側と決めている途中 | 仮 |
-| POST | `/work-sessions/{id}/voice-notes` | 「今日の気づき」の音声を登録（`multipart/form-data`）。文字起こしはあとで行う | 実装済み |
+| POST | `/work-sessions/{id}/voice-notes` | 「今日の気づき」の音声と、スマートフォンで文字に起こした内容を登録（`multipart/form-data`） | 実装済み |
 | GET | `/work-sessions/{id}/voice-notes` | 「今日の気づき」の一覧と文字起こし | 実装済み |
 | GET | `/work-logs` | 作業ログの一覧（`?plot_id=&user_id=&from=&to=`） | 実装済み |
 
@@ -105,7 +105,7 @@
 サーバーは作業の開始時に判定の設定（閾値など）を返し、判定の結果を受け取って保存する。
 設定は DB の `judgment_params` に持ち、コードには書かない。
 
-毎朝5時の処理（天気の取り込み、文字起こしのやり直し、今日のひとことの生成）は API サーバーの中で動かす。
+毎朝5時の処理（天気の取り込み、今日のひとことの生成）は API サーバーの中で動かす。
 
 ## AI 相談の仕組み
 

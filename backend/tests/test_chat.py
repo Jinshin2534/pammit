@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from app.db import SessionLocal, init_db
 from app.main import app
 from app.models import KnowledgeDocument, User
-from app.services import chat, knowledge, voice_notes
+from app.services import chat, knowledge
 from tests.helpers import login, make_farm
 
 NOTE = ("摘果は7月から8月にかけて行う。\n\n"
@@ -139,29 +139,31 @@ class VoiceNoteTests(unittest.TestCase):
             "client_event_id": str(uuid4()), "plot_id": farm.plot_ids[1], "work_type": "摘果・摘葉",
             "started_at": "2026-10-04T08:00:00+09:00"}).json()["id"]
 
-    def upload(self, headers, sid, event_id, content_type="audio/mp4"):
+    def upload(self, headers, sid, event_id, content_type="audio/mp4", transcript="奥の枝の実は日が当たりにくい。"):
         return self.client.post(f"/api/v1/work-sessions/{sid}/voice-notes", headers=headers,
-                                data={"client_event_id": event_id},
+                                data={"client_event_id": event_id, "transcript": transcript},
                                 files={"file": ("note.m4a", b"fake-audio", content_type)})
 
-    def test_upload_then_transcribe_later_adds_knowledge(self) -> None:
+    def test_upload_saves_transcript_and_adds_knowledge(self) -> None:
         farm = make_farm()
         headers = login(self.client, farm, farm.worker_id)
         sid = self.start(farm, headers)
         event_id = str(uuid4())
         first = self.upload(headers, sid, event_id)
-        self.assertEqual(first.status_code, 201)
-        self.assertIsNone(first.json()["transcript"])  # キーがないので、まだ文字起こしされない
+        self.assertEqual((first.status_code, first.json()["transcript"]), (201, "奥の枝の実は日が当たりにくい。"))
         again = self.upload(headers, sid, event_id)
         self.assertEqual((again.status_code, again.json()["id"]), (200, first.json()["id"]))
+        with SessionLocal() as db:
+            docs = db.query(KnowledgeDocument).filter_by(farm_id=farm.farm_id, source_type="voice_note").all()
+            self.assertEqual(len(docs), 1)  # 送り直しても知識は1件
+            self.assertIn("三番ハウス", docs[0].title)
+            self.assertIn("日が当たりにくい", knowledge.search(db, farm.farm_id, "日が当たらない枝")[0]["content"])
 
-        with mock.patch.object(voice_notes, "transcribe", return_value="奥の枝の実は日が当たりにくい。"), \
-                SessionLocal() as db:
-            self.assertGreaterEqual(voice_notes.transcribe_pending(db), 1)
-            doc = db.query(KnowledgeDocument).filter_by(farm_id=farm.farm_id, source_type="voice_note").one()
-            self.assertIn("三番ハウス", doc.title)
-        notes = self.client.get(f"/api/v1/work-sessions/{sid}/voice-notes", headers=headers).json()
-        self.assertEqual(notes[0]["transcript"], "奥の枝の実は日が当たりにくい。")
+    def test_requires_transcript(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        r = self.upload(headers, self.start(farm, headers), str(uuid4()), transcript="")
+        self.assertEqual(r.status_code, 422)
 
     def test_rejects_non_audio(self) -> None:
         farm = make_farm()

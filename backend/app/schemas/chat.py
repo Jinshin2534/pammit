@@ -44,5 +44,5 @@ class KnowledgeOut(BaseModel):
 class VoiceNote(BaseModel):
     id: int
     session_id: int
-    transcript: str | None = Field(default=None, description="文字起こしが済むまでは null")
+    transcript: str | None = Field(default=None, description="スマートフォンで文字に起こした内容")
     created_at: datetime

@@ -47,7 +47,7 @@ erDiagram
 | `work_sessions` | `client_event_id`, `farm_id`, `plot_id`, `user_id`, `work_type`, `schedule_id`, `started_at`, `ended_at`, `config_snapshot` | 作業1回分。開始時に配った判定設定を `config_snapshot` に残す |
 | `detections` | `client_event_id`, `session_id`, `detected_at`, `verdict`, `model_version` ほか | 判定1件。列は [ai.md](ai.md) の検討結果に合わせて決める |
 | `work_logs` | `farm_id`, `session_id`, `plot_id`, `user_id`, `work_type`, `worked_on`, `started_at`, `ended_at` | セッションの終了時に自動で作る |
-| `voice_notes` | `client_event_id`, `session_id`, `user_id`, `storage_key`, `transcript`, `transcribed_at`, `knowledge_document_id` | 「今日の気づき」。音声は S3 に置く。文字起こしは後から埋め、済んだら知識にも加える |
+| `voice_notes` | `client_event_id`, `session_id`, `user_id`, `storage_key`, `transcript`, `transcribed_at`, `knowledge_document_id` | 「今日の気づき」。音声は S3 に置く。文字はスマートフォンで起こしたものを受け取り、知識にも加える |
 | `judgment_params` | `farm_id`, `work_type`, `params` | 判定の閾値。セッション開始時にアプリへ配る |
 
 作業の種類は `剪定` `灌水` `肥料` `摘果・摘葉` `収穫` `防除` `草刈り` `その他` の8つ。
