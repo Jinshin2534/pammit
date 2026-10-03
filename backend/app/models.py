@@ -242,3 +242,71 @@ class DailyAdvice(Base):
     context: Mapped[dict[str, Any]] = mapped_column(JSON)
     model: Mapped[str] = mapped_column(String(50))
     generated_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+# --- AI 相談 ---
+
+
+class ChatThread(Base):
+    __tablename__ = "chat_threads"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    # 作業中の相談のときだけ入る。作業画面の「AI相談ログ」に使う
+    session_id: Mapped[int | None] = mapped_column(ForeignKey("work_sessions.id"), index=True)
+    title: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    thread_id: Mapped[int] = mapped_column(ForeignKey("chat_threads.id"), index=True)
+    role: Mapped[str] = mapped_column(String(10))  # 'user' | 'assistant'
+    content: Mapped[str] = mapped_column(Text)
+    # 回答を作るときに AI が呼んだ関数の名前（あとから確かめるため）
+    tools_used: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
+
+
+class KnowledgeDocument(Base):
+    """相談に使う知識の原本。`farm_id` が空なら全経営体で共有する。"""
+
+    __tablename__ = "knowledge_documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    farm_id: Mapped[int | None] = mapped_column(ForeignKey("farms.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    source_type: Mapped[str] = mapped_column(String(20))  # 'research' | 'interview' | 'voice_note' など
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
+
+
+class KnowledgeChunk(Base):
+    __tablename__ = "knowledge_chunks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("knowledge_documents.id", ondelete="CASCADE"), index=True)
+    farm_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    content: Mapped[str] = mapped_column(Text)
+
+
+class VoiceNote(Base):
+    """作業の終わりに残す「今日の気づき」。文字起こしはあとから埋まることがある。"""
+
+    __tablename__ = "voice_notes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    client_event_id: Mapped[UUID] = mapped_column(Uuid, unique=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"), index=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("work_sessions.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    storage_key: Mapped[str] = mapped_column(String(300))
+    content_type: Mapped[str] = mapped_column(String(50))
+    transcript: Mapped[str | None] = mapped_column(Text)
+    transcribed_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    knowledge_document_id: Mapped[int | None] = mapped_column(ForeignKey("knowledge_documents.id"))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())

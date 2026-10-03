@@ -1,21 +1,27 @@
 from datetime import date, datetime, time, timedelta, timezone
+from pathlib import Path
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import current_user, get_plot_in_farm
 from app.core.errors import api_error
 from app.db import get_db
-from app.models import JudgmentParams, Schedule, User, WorkLog, WorkSession
+from app.models import JudgmentParams, Schedule, User, VoiceNote, WorkLog, WorkSession
+from app.schemas.chat import VoiceNote as VoiceNoteOut
 from app.schemas.detections import DetectionBatch, DetectionBatchResult
 from app.schemas.plots import HAT_WORK_TYPES, WorkType
 from app.schemas.sessions import WorkSession as WorkSessionOut
 from app.schemas.sessions import WorkSessionCreate, WorkSessionFinish
+from app.services.voice_notes import attach_transcript, save_audio
 
 router = APIRouter(prefix="/work-sessions", tags=["work-sessions"])
 
 JST = timezone(timedelta(hours=9))
+MAX_AUDIO_BYTES = 10 * 1024 * 1024
 
 
 def _out(s: WorkSession) -> WorkSessionOut:
@@ -148,3 +154,56 @@ def post_detections(
 ) -> DetectionBatchResult:
     _get_session(db, session_id, user)
     return DetectionBatchResult(accepted=len(body.detections), duplicated=0, rejected=0)
+
+
+@router.post(
+    "/{session_id}/voice-notes",
+    response_model=VoiceNoteOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="「今日の気づき」の音声を送る",
+    description=(
+        "`multipart/form-data` で `file`（音声ファイル、10MB まで）、`client_event_id`、"
+        "`transcript`（スマートフォンで文字に起こした内容）を送る。\n\n"
+        "`transcript` は相談に使う知識にも加える。同じ `client_event_id` で送り直した場合は、登録済みのものを 200 で返す。"
+    ),
+)
+async def post_voice_note(
+    session_id: int,
+    response: Response,
+    file: UploadFile = File(),
+    client_event_id: UUID = Form(),
+    transcript: str = Form(min_length=1, max_length=5000),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> VoiceNoteOut:
+    s = _get_session(db, session_id, user)
+    existing = db.scalar(select(VoiceNote).where(VoiceNote.client_event_id == client_event_id))
+    if existing is not None:
+        response.status_code = status.HTTP_200_OK
+        return _voice_note(existing)
+    content_type = file.content_type or ""
+    if not content_type.startswith("audio/"):
+        api_error(415, "not_audio", "音声ファイルを送ってください")
+    data = await file.read()
+    if len(data) > MAX_AUDIO_BYTES:
+        api_error(413, "too_large", "音声ファイルが大きすぎます（10MB まで）")
+
+    suffix = Path(file.filename or "").suffix or ".m4a"
+    key = f"voice-notes/{s.farm_id}/{s.id}/{client_event_id}{suffix}"
+    await run_in_threadpool(save_audio, key, data, content_type)
+    note = VoiceNote(client_event_id=client_event_id, farm_id=s.farm_id, session_id=s.id, user_id=user.id,
+                     storage_key=key, content_type=content_type, created_at=datetime.now(timezone.utc))
+    db.add(note)
+    db.commit()
+    attach_transcript(db, note, transcript.strip())
+    return _voice_note(note)
+
+
+@router.get("/{session_id}/voice-notes", response_model=list[VoiceNoteOut], summary="「今日の気づき」の一覧")
+def list_voice_notes(session_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[VoiceNoteOut]:
+    s = _get_session(db, session_id, user)
+    return [_voice_note(n) for n in db.scalars(select(VoiceNote).where(VoiceNote.session_id == s.id).order_by(VoiceNote.id))]
+
+
+def _voice_note(n: VoiceNote) -> VoiceNoteOut:
+    return VoiceNoteOut(id=n.id, session_id=n.session_id, transcript=n.transcript, created_at=n.created_at)

@@ -5,3 +5,4 @@ import tempfile
 os.environ.setdefault("DATABASE_URL", f"sqlite:///{tempfile.mkdtemp()}/test.db")
 os.environ.setdefault("TTN_WEBHOOK_SECRET", "test-webhook-secret")
 os.environ.setdefault("RUN_DAILY_JOB", "false")
+os.environ.setdefault("LOCAL_UPLOAD_DIR", f"{tempfile.mkdtemp()}/uploads")

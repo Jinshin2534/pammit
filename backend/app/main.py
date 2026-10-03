@@ -32,6 +32,7 @@ TAGS = [
     {"name": "work-sessions", "description": "作業の開始から終了まで。帽子を使わない作業も記録する。"},
     {"name": "work-logs", "description": "作業ログ。作業の終了時に自動で作られる。"},
     {"name": "field", "description": "農園画面（土壌水分・天気・灌水の助言）と今日のひとこと。"},
+    {"name": "chat", "description": "AI 相談と、相談に使う知識。"},
     {"name": "sensors", "description": "園地センサーからの受信と、測定値の参照。"},
     {"name": "evaluation", "description": "判定精度の評価結果。"},
     {"name": "health", "description": "動作確認。"},
