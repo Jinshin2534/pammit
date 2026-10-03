@@ -1,19 +1,14 @@
 # AWS とセンサー受信
 
-クラウド側の構成・操作手順と、ハード担当がセンサー値を送るための接続情報をまとめる。
+クラウドの構成と操作手順、センサーから値を送るための接続情報。
 構築コードは [`infra/`](../infra)（AWS CDK / TypeScript）にある。
 
-## 本選での扱い（2026-09-27 決定）
+## 送信の経路
 
-| | 本選デモ | 本番の構成（発表で示す） |
+| 経路 | 受け口 | 状態 |
 |---|---|---|
-| 経路 | ESP32 → **Wi-Fi**（スマホのテザリング） → AWS | ESP32 + LoRa → ゲートウェイ → TTN → **Webhook** → AWS |
-| 受け口 | `POST /api/v1/ingest/sensor` | `POST /api/v1/ingest/lorawan` |
-| 状態 | 実機で送信する | **サーバー側は実装・テスト済み**。LoRa モジュールとゲートウェイは未購入 |
-
-LoRaWAN の実機は予算（約2.6〜2.9万円）と締切の都合で本選では使わない。
-会場にはネットがないため、通信できないときはダミーデータで画面を動かす。
-**操作マニュアルには、実際に動く Wi-Fi 経路だけを書く。**
+| ESP32 → Wi-Fi（スマートフォンのテザリング） → サーバー | `POST /api/v1/ingest/sensor` | 実機で送信する |
+| ESP32 + LoRa → ゲートウェイ → TTN → Webhook → サーバー | `POST /api/v1/ingest/lorawan` | サーバー側は実装・テスト済み。LoRa モジュールとゲートウェイは未購入 |
 
 ## 構成
 
@@ -48,20 +43,20 @@ npx cdk diff                  # 変更点の確認。deploy の前に必ず見�
 
 API の URL は `cdk-outputs.json` の `ApiUrl`、または `aws cloudformation describe-stacks --stack-name Pammit` で確認する。
 
-### 片付け（本選後）
+### 片付け
 
 ```bash
 npx cdk destroy
 ```
 
-課金はほぼ止まる。ただし次の2つは**データ保護のため自動では消えない**。不要なら手動で削除する。
+課金はほぼ止まる。ただし次の2つはデータ保護のため自動では消えない。不要なら手動で削除する。
 
 - RDS の最終スナップショット（月100円程度）
 - S3 バケット `pammit-uploads...`（空なら課金なし）
 
-## ハード担当へ: Wi-Fi 直結で送る
+## Wi-Fi で送る
 
-デバイスキーはバックエンド担当から受け取る（`create-device.sh` の出力。**再表示できない**）。
+デバイスキーは `create-device.sh` で発行する。発行時に一度だけ表示され、あとから見ることはできない。
 
 ```http
 POST https://<ApiUrl>/api/v1/ingest/sensor
@@ -89,7 +84,7 @@ Content-Type: application/json
 | `401` | デバイスキーが違う |
 | `422` | JSON の形が違う。`measured_at` のタイムゾーン抜け、`battery_pct` 抜けが多い |
 
-- `measured_at` は**タイムゾーン付き**。ESP32 は NTP で時刻を合わせる（`configTime(9 * 3600, 0, "ntp.nict.jp")`）。
+- `measured_at` はタイムゾーン付き。ESP32 は NTP で時刻を合わせる（`configTime(9 * 3600, 0, "ntp.nict.jp")`）。
 - 送れなかった分は溜めておき、次回まとめて送ってよい（1回100件まで）。
 - 取れなかった項目は `null` か省略。`battery_pct` だけは必須。
 
@@ -120,14 +115,14 @@ curl -X POST "$API_URL/api/v1/ingest/sensor" \
 - 欠測は実際には出ない値で表す（327.67℃、655.35% など）。
 - 測定時刻は TTN の受信時刻を使う。ペイロードには入れない。
 
-### TTN 側の設定（部品が揃ったら）
+### TTN 側の設定
 
 1. TTN（The Things Stack Sandbox）でアプリケーションを作り、端末を登録する（周波数プラン AS923）。
 2. 端末の DevEUI でサーバーに登録する: `./scripts/create-device.sh --name 5番畑-lora --plot-id 5 --dev-eui <DevEUI>`
 3. Integrations → Webhooks → Custom webhook を追加する。
    - Base URL: `https://<ApiUrl>/api/v1/ingest/lorawan`
    - Additional headers: `X-Webhook-Secret` = `./scripts/show-ttn-secret.sh` の出力
-   - Enabled event types: **Uplink message** のみ
+   - Enabled event types: Uplink message のみ
 
 ### 部品がなくても確認できる
 
@@ -143,7 +138,7 @@ curl -X POST "$API_URL/api/v1/ingest/lorawan" \
 
 | 部品 | 候補 | 目安 |
 |---|---|---|
-| LoRaWAN モジュール（AS923・**技適必須**） | Wio-E5 mini、M5Stack Unit LoRaWAN-AS923 | 約4,000〜5,000円 |
+| LoRaWAN モジュール（AS923・技適必須） | Wio-E5 mini、M5Stack Unit LoRaWAN-AS923 | 約4,000〜5,000円 |
 | ゲートウェイ（AS923 Japan・技適あり） | SenseCAP M2 屋内ゲートウェイ ＋ 12V 2A アダプター | 約22,000円 |
 
 モジュールは購入前に技適番号と、その番号で認められたアンテナを確認すること。
