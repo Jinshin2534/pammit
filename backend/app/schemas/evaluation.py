@@ -21,7 +21,7 @@ class EvaluationRunCreate(BaseModel):
             "example": {
                 "model_version": "sudachi-v0.3",
                 "dataset": "2026-09-摘果-評価用",
-                "work_type": "摘果",
+                "work_type": "摘果・摘葉",
                 "sample_count": 420,
                 "agreement_rate": 0.924,
                 "breakdown": {

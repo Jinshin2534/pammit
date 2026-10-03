@@ -6,95 +6,34 @@ from fastapi.responses import RedirectResponse
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.errors import install_error_handlers
 from app.db import init_db
 
 DESCRIPTION = """
-すだち農家向け技能継承システム **パミット** のバックエンドAPI。
+すだち農家向けの作業支援システム「パミット」の API。資料はリポジトリの `docs/` にある。
 
-**このページが API 仕様の正です。** 設計の背景は `docs/` を参照してください。
-
----
-
-### システム構成
-
-```
-帽子（Raspberry Pi Zero 2 W）  I/O のみ — カメラ / マイク / スピーカー
-      ↕ Wi-Fi（スマホのテザリング）
-スマートフォン（Android）      YOLO推論 / 判定計算 / 一次応答 / Realtime API 仲介
-      ↕ LTE
-AWS（EC2 + RDS + S3）          記録 / 週次スケジュール生成 / RAG   ← ここ
-```
-
-### 判定ロジックはサーバーに置きません
-
-判定計算は**スマートフォン側**で行います（応答1秒以内という要件のため）。
-サーバーの役割は2つだけです。
-
-1. **閾値を配信する** — セッション開始時に一括で渡す
-2. **判定結果を受け取って保存する** — 再計算も検証もしない
-
-これでロジックの二重化を避けています。
-
-### 共通の約束
-
-| 項目 | 決め |
+| 項目 | 内容 |
 |---|---|
-| 冪等性 | 書き込み系は `client_event_id`（UUID v4）必須。**重複は無視して 200 を返す** |
-| 時刻 | ISO 8601、タイムゾーン付き。端末時刻とサーバー受信時刻を両方保存する |
-| 認証 | `Authorization: Bearer <JWT>`（アプリ） / `X-Device-Key`（センサー） |
+| 認証 | アプリは `POST /api/v1/auth/login` で受け取ったトークンを `Authorization: Bearer <token>` で送る。センサーは `X-Device-Key` |
+| 二重登録 | 書き込みには `client_event_id`（UUID v4）を付ける。同じ ID が再び届いたら、登録済みのものを返す |
+| 時刻 | ISO 8601 のタイムゾーン付き |
+| エラー | `{"error": {"code": "...", "message": "...", "detail": {...}}}` |
 
-### 現在の状態
-
-**センサー受信（`sensors`）以外はスタブ応答を返しています。**
-センサー受信は DB に保存します。端末の登録は `python -m app.cli create-device` で行います。
+判定の計算はスマートフォンで行う。サーバーは作業の開始時に判定の設定を返し、結果を受け取って保存する。
 """
 
 TAGS = [
-    {"name": "auth", "description": "認証。作業者は農家さんが事前登録し、**4桁PIN**でログインする。"},
-    {"name": "masters", "description": "園地などのマスタ。`cultivation_type`（ハウス／露地）が全体の分岐の起点。"},
-    {
-        "name": "work-sessions",
-        "description": (
-            "作業セッションと判定結果。**最優先で実装する。**\n\n"
-            "開始レスポンスに判定設定を全部載せるため、"
-            "**以降はオフラインで判定が回る**（本選会場にネット環境はない）。"
-        ),
-    },
-    {
-        "name": "work-logs",
-        "description": (
-            "作業ログ。摘果・摘葉・収穫は**セッションから自動記録**されるため入力不要。\n"
-            "それ以外は選択式UIで3タップ。薬剤名などは**すべて任意入力**。"
-        ),
-    },
-    {
-        "name": "schedule",
-        "description": (
-            "週次スケジュール提案。課題は「今日何をするか」ではなく**「予定が立たないこと」**。\n"
-            "日程はルールで組み、**文章化だけLLM**に任せる。"
-        ),
-    },
-    {
-        "name": "sensors",
-        "description": (
-            "園地に常設したセンサーユニットからの受信。\n"
-            "Wi-Fi直結とLoRaWANの**両方の口を用意**しているため、"
-            "ハード担当は先にWi-Fiで開発を進められる。"
-        ),
-    },
-    {
-        "name": "assistant",
-        "description": (
-            "AI相談と判定の理由説明（**二次応答**・2〜3秒）。\n"
-            "一次応答（判定直後の定型音声・0.3秒）はオフラインで完結し、ここを通らない。"
-        ),
-    },
-    {
-        "name": "evaluation",
-        "description": "判定精度。**KPI「作業の質 95%」の根拠となる唯一の数字。**",
-    },
-    {"name": "admin", "description": "管理者画面向けの集計。最小限に留める。"},
+    {"name": "auth", "description": "ログイン。作業者は管理者が登録し、4桁の PIN でログインする。"},
+    {"name": "users", "description": "作業者の登録と変更。"},
+    {"name": "plots", "description": "農園（園地）。"},
+    {"name": "schedules", "description": "予定。人が1日ずつ入力する。"},
+    {"name": "work-sessions", "description": "作業の開始から終了まで。帽子を使わない作業も記録する。"},
+    {"name": "work-logs", "description": "作業ログ。作業の終了時に自動で作られる。"},
+    {"name": "sensors", "description": "園地センサーからの受信と、測定値の参照。"},
+    {"name": "evaluation", "description": "判定精度の評価結果。"},
+    {"name": "health", "description": "動作確認。"},
 ]
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -113,6 +52,7 @@ app = FastAPI(
     contact={"name": "パミット バックエンド"},
 )
 
+install_error_handlers(app)
 app.include_router(api_router)
 
 
@@ -121,6 +61,6 @@ async def root() -> RedirectResponse:
     return RedirectResponse("/docs")
 
 
-@app.get("/health", tags=["admin"], summary="ヘルスチェック")
+@app.get("/health", tags=["health"], summary="ヘルスチェック")
 async def health() -> dict[str, str]:
     return {"status": "ok", "version": settings.version}

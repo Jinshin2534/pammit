@@ -1,6 +1,6 @@
 # データモデル
 
-PostgreSQL 16（pgvector 拡張）を使う。実装済みのテーブルは `sensor_devices` と `sensor_readings` で、ほかは設計段階。
+PostgreSQL 16（pgvector 拡張）を使う。組織・人、園地、予定と作業（`detections`・`voice_notes` を除く）、センサーのテーブルは実装済み。ほかは設計段階。
 
 時刻はタイムゾーン付きで保存し、端末の時刻とサーバーの受信時刻を分けて持つ。
 書き込みの重複は、端末が作る `client_event_id` の一意制約で防ぐ。
@@ -42,11 +42,11 @@ erDiagram
 
 | テーブル | 主な列 | 備考 |
 |---|---|---|
-| `schedules` | `plot_id`, `date`, `start_time`, `end_time`, `work_types`, `note` | 人が入力する予定 |
+| `schedules` | `client_event_id`, `farm_id`, `plot_id`, `date`, `start_time`, `end_time`, `work_types`, `note` | 人が入力する予定 |
 | `schedule_assignees` | `schedule_id`, `user_id` | 担当者（複数） |
-| `work_sessions` | `client_event_id`, `plot_id`, `user_id`, `work_type`, `schedule_id`, `started_at`, `ended_at`, `config_snapshot` | 作業1回分。開始時に配った判定設定を `config_snapshot` に残す |
+| `work_sessions` | `client_event_id`, `farm_id`, `plot_id`, `user_id`, `work_type`, `schedule_id`, `started_at`, `ended_at`, `config_snapshot` | 作業1回分。開始時に配った判定設定を `config_snapshot` に残す |
 | `detections` | `client_event_id`, `session_id`, `detected_at`, `verdict`, `model_version` ほか | 判定1件。列は [ai.md](ai.md) の検討結果に合わせて決める |
-| `work_logs` | `session_id`, `plot_id`, `user_id`, `work_type`, `worked_on`, `started_at`, `ended_at` | セッションの終了時に自動で作る |
+| `work_logs` | `farm_id`, `session_id`, `plot_id`, `user_id`, `work_type`, `worked_on`, `started_at`, `ended_at` | セッションの終了時に自動で作る |
 | `voice_notes` | `session_id`, `user_id`, `s3_key`, `transcript`, `transcribed_at` | 「今日の気づき」。文字起こしは後から埋める |
 | `judgment_params` | `farm_id`, `work_type`, `params` | 判定の閾値。セッション開始時にアプリへ配る |
 
