@@ -1,5 +1,6 @@
 """農園日誌。作業ログ・センサー・天気予報から日ごとの記録を組み立て、PDF にする。"""
 import io
+from pathlib import Path
 from datetime import date, datetime, time, timedelta, timezone
 
 from sqlalchemy import func, select
@@ -8,6 +9,9 @@ from sqlalchemy.orm import Session
 from app.models import JournalNote, Plot, SensorDevice, SensorReading, WeatherForecast, WorkLog
 from app.schemas.plots import WorkType
 from app.services.weather import weather_word
+
+# BIZ UDPゴシック（SIL Open Font License 1.1、app/fonts/OFL.txt）
+FONT_PATH = Path(__file__).resolve().parent.parent / "fonts" / "BIZUDPGothic-Regular.ttf"
 
 JST = timezone(timedelta(hours=9))
 WORK_ORDER = [w.value for w in WorkType]
@@ -69,11 +73,13 @@ def render_pdf(farm_name: str, start: date, end: date, days: list[dict]) -> byte
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import mm
     from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+    from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-    font = "HeiseiKakuGo-W5"
-    pdfmetrics.registerFont(UnicodeCIDFont(font))
+    # フォントを埋め込む。埋め込まないと端末ごとに別の字体で表示され、字の幅が変わって欄からはみ出す
+    font = "BIZUDPGothic"
+    if font not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont(font, str(FONT_PATH)))
     title = ParagraphStyle("title", fontName=font, fontSize=16, leading=22)
     heading = ParagraphStyle("heading", fontName=font, fontSize=12, leading=18, spaceBefore=6)
     cell = ParagraphStyle("cell", fontName=font, fontSize=8.5, leading=11)
@@ -91,10 +97,10 @@ def render_pdf(farm_name: str, start: date, end: date, days: list[dict]) -> byte
              Paragraph(f"{start:%Y年%m月%d日} 〜 {end:%Y年%m月%d日}", cell), Spacer(0, 5 * mm)]
     rows = [["日付", "天気", "最高℃", "最低℃", "人数", "作業内容", "備考"]]
     for d in days:
-        rows.append([f"{d['date']:%m/%d}", d["weather"] or "", temp(d["temp_max"]), temp(d["temp_min"]),
+        rows.append([f"{d['date']:%m/%d}", Paragraph(d["weather"] or "", cell), temp(d["temp_max"]), temp(d["temp_min"]),
                      str(d["worker_count"]) if d["worker_count"] else "",
                      Paragraph(" / ".join(d["work_types"]), cell), Paragraph(d["note"] or "", cell)])
-    widths = [14 * mm, 22 * mm, 14 * mm, 14 * mm, 10 * mm, 48 * mm, 58 * mm]
+    widths = [14 * mm, 28 * mm, 14 * mm, 14 * mm, 10 * mm, 46 * mm, 54 * mm]
     story.append(Table(rows, colWidths=widths, repeatRows=1, style=grid))
 
     worked = [d for d in days if d["works"]]
