@@ -1,6 +1,6 @@
 # データモデル
 
-PostgreSQL 16（pgvector 拡張）を使う。組織・人、園地、予定と作業（`detections`・`voice_notes` を除く）、センサーと天気、今日のひとことのテーブルは実装済み。ほかは設計段階。
+PostgreSQL 16（pgvector 拡張）を使う。`detections`・`journal_notes`・`evaluation_runs` 以外のテーブルは実装済み。ほかは設計段階。
 
 時刻はタイムゾーン付きで保存し、端末の時刻とサーバーの受信時刻を分けて持つ。
 書き込みの重複は、端末が作る `client_event_id` の一意制約で防ぐ。
@@ -47,7 +47,7 @@ erDiagram
 | `work_sessions` | `client_event_id`, `farm_id`, `plot_id`, `user_id`, `work_type`, `schedule_id`, `started_at`, `ended_at`, `config_snapshot` | 作業1回分。開始時に配った判定設定を `config_snapshot` に残す |
 | `detections` | `client_event_id`, `session_id`, `detected_at`, `verdict`, `model_version` ほか | 判定1件。列は [ai.md](ai.md) の検討結果に合わせて決める |
 | `work_logs` | `farm_id`, `session_id`, `plot_id`, `user_id`, `work_type`, `worked_on`, `started_at`, `ended_at` | セッションの終了時に自動で作る |
-| `voice_notes` | `session_id`, `user_id`, `s3_key`, `transcript`, `transcribed_at` | 「今日の気づき」。文字起こしは後から埋める |
+| `voice_notes` | `client_event_id`, `session_id`, `user_id`, `storage_key`, `transcript`, `transcribed_at`, `knowledge_document_id` | 「今日の気づき」。音声は S3 に置く。文字起こしは後から埋め、済んだら知識にも加える |
 | `judgment_params` | `farm_id`, `work_type`, `params` | 判定の閾値。セッション開始時にアプリへ配る |
 
 作業の種類は `剪定` `灌水` `肥料` `摘果・摘葉` `収穫` `防除` `草刈り` `その他` の8つ。
@@ -68,10 +68,10 @@ erDiagram
 | テーブル | 主な列 | 備考 |
 |---|---|---|
 | `daily_advices` | `farm_id`, `date`, `summary`, `body`, `context`, `model`, `generated_at` | 今日のひとこと。生成に使った材料を `context` に残す |
-| `chat_threads` | `user_id`, `session_id`, `title`, `created_at` | `session_id` は作業中の相談のときだけ入る |
-| `chat_messages` | `thread_id`, `role`, `content`, `created_at` | |
-| `knowledge_documents` | `title`, `source_type`, `body` | 相談に使う知識の原本 |
-| `knowledge_chunks` | `document_id`, `content`, `embedding` | 検索用に分割したもの |
+| `chat_threads` | `farm_id`, `user_id`, `session_id`, `title`, `created_at`, `updated_at` | `session_id` は作業中の相談のときだけ入る |
+| `chat_messages` | `thread_id`, `role`, `content`, `tools_used`, `created_at` | `tools_used` は回答のときに AI が呼んだ関数 |
+| `knowledge_documents` | `farm_id`, `title`, `source_type`, `body` | 相談に使う知識の原本。`farm_id` が空なら全経営体で共有 |
+| `knowledge_chunks` | `document_id`, `farm_id`, `content` | 段落ごとに分けたもの。2文字ずつの重なりで近さを測って検索する |
 | `evaluation_runs` | `model_version`, `dataset`, `work_type`, `sample_count`, `agreement_rate`, `breakdown` | 判定精度の評価結果 |
 
 ## 農園日誌

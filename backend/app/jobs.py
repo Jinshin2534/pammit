@@ -1,6 +1,6 @@
 """毎朝の処理。API サーバーの中で動かす（外部のタイマーを置かずに済むように）。
 
-天気予報を取り込み、各経営体の今日のひとことを作る。
+天気予報を取り込み、文字起こしが済んでいない「今日の気づき」をやり直し、各経営体の今日のひとことを作る。
 """
 import asyncio
 import logging
@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.db import SessionLocal
 from app.models import Farm
 from app.services.daily_advice import generate
+from app.services.voice_notes import transcribe_pending
 from app.services.weather import refresh_forecasts
 
 log = logging.getLogger(__name__)
@@ -22,6 +23,11 @@ def run_daily_job() -> None:
     today = datetime.now(JST).date()
     with SessionLocal() as db:
         log.info("天気予報を %d 日分取り込みました", refresh_forecasts(db))
+        try:
+            log.info("「今日の気づき」を %d 件文字に起こしました", transcribe_pending(db))
+        except Exception:  # noqa: BLE001
+            db.rollback()
+            log.exception("文字起こしのやり直しに失敗しました")
         for farm in db.scalars(select(Farm)):
             try:
                 generate(db, farm, today)

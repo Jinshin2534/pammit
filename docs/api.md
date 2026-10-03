@@ -60,17 +60,20 @@
 | GET | `/work-sessions/{id}` | 作業の詳細 | 実装済み |
 | POST | `/work-sessions/{id}/finish` | 作業の終了。作業ログを作る | 実装済み |
 | POST | `/work-sessions/{id}/detections` | 判定結果の登録。形を AI 側と決めている途中 | 仮 |
-| POST | `/work-sessions/{id}/voice-notes` | 「今日の気づき」の音声を登録 | 予定 |
+| POST | `/work-sessions/{id}/voice-notes` | 「今日の気づき」の音声を登録（`multipart/form-data`）。文字起こしはあとで行う | 実装済み |
+| GET | `/work-sessions/{id}/voice-notes` | 「今日の気づき」の一覧と文字起こし | 実装済み |
 | GET | `/work-logs` | 作業ログの一覧（`?plot_id=&user_id=&from=&to=`） | 実装済み |
 
 ### AI 相談
 
 | メソッド | パス | 用途 | 状態 |
 |---|---|---|---|
-| GET | `/chat/threads` | 過去の会話の一覧 | 予定 |
-| POST | `/chat/threads` | 会話を始める（作業中なら `session_id` を付ける） | 予定 |
-| GET | `/chat/threads/{id}/messages` | 会話の内容 | 予定 |
-| POST | `/chat/threads/{id}/messages` | 質問を送り、回答を受け取る | 予定 |
+| GET | `/chat/threads` | 過去の会話の一覧（`?session_id=` で作業中の会話だけ） | 実装済み |
+| POST | `/chat/threads` | 会話を始める（作業中なら `session_id` を付ける） | 実装済み |
+| GET | `/chat/threads/{id}/messages` | 会話の内容 | 実装済み |
+| POST | `/chat/threads/{id}/messages` | 質問を送り、回答を受け取る | 実装済み |
+| GET | `/knowledge` | 相談に使う知識の一覧（owner） | 実装済み |
+| POST | `/knowledge` | 知識の登録（owner） | 実装済み |
 
 ### 農園日誌
 
@@ -102,4 +105,17 @@
 サーバーは作業の開始時に判定の設定（閾値など）を返し、判定の結果を受け取って保存する。
 設定は DB の `judgment_params` に持ち、コードには書かない。
 
-毎朝5時の処理（天気の取り込み、今日のひとことの生成）は API サーバーの中で動かす。
+毎朝5時の処理（天気の取り込み、文字起こしのやり直し、今日のひとことの生成）は API サーバーの中で動かす。
+
+## AI 相談の仕組み
+
+OpenAI の関数呼び出しを使う。AI は質問に応じて次の関数を呼び、サーバーはログイン中の人の経営体のデータだけを返す。
+
+| 関数 | 返すもの |
+|---|---|
+| `search_knowledge` | 現地調査・聞き取り・「今日の気づき」から、質問に近い段落 |
+| `get_field_status` | 農園の土壌水分・天気・灌水の助言 |
+| `get_schedules` | 期間内の予定 |
+| `get_work_history` | 最近の作業の記録 |
+
+判定の結果を引く関数は、判定データの形が決まってから足す。OpenAI のキーがないときは、関係しそうな知識をそのまま返す。
