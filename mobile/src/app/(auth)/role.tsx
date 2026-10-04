@@ -1,11 +1,9 @@
 import { router } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
 
-import { PammitLogo } from '@/components/branding';
+import { HeaderBackground } from '@/components/background/header-background';
 import { PageLayout } from '@/components/layout/page-layout';
-import { ScreenHeader } from '@/components/navigation/screen-header';
-import { Button, Card } from '@/components/ui';
-import { colors, fonts } from '@/theme/tokens';
+import { AppText, ListItem } from '@/components/ui';
+import { colors, strokes } from '@/theme/tokens';
 
 type LoginRole = 'owner' | 'worker';
 
@@ -16,70 +14,29 @@ export default function RoleScreen() {
 
   return (
     <PageLayout
+      background={<HeaderBackground position="center" />}
       variant="centered"
-      header={<ScreenHeader title="役割を選ぶ" topPadding={16} />}
+      scrollable={false}
       testID="role-screen">
-      <PammitLogo testID="pammit-logo" />
-      <View style={styles.introduction}>
-        <Text maxFontSizeMultiplier={1.2} style={styles.question}>
-          あなたはどちらですか？
-        </Text>
-        <Text maxFontSizeMultiplier={1.2} style={styles.guide}>
-          当てはまる方を押してください
-        </Text>
-      </View>
-
-      <Card
+      <AppText variant="title" style={{ alignSelf: 'center', textAlign: 'center', width: 315 }}>
+        {'どちらが\nログインしますか？'}
+      </AppText>
+      <ListItem
         title="師匠農家さん"
-        body="農園の管理や、みんなの記録を確認する方"
-        variant="filled"
-        testID="role-owner-card">
-        <Button
-          label="師匠農家さんで進む"
-          variant="secondary"
-          size="lg"
-          onPress={() => selectRole('owner')}
-          testID="role-owner-button"
-        />
-      </Card>
-
-      <Card
-        title="後継者・アルバイト"
-        body="農作業や予定の確認をする方"
-        variant="outlined"
-        testID="role-worker-card">
-        <Button
-          label="作業者として進む"
-          variant="primary"
-          size="lg"
-          onPress={() => selectRole('worker')}
-          testID="role-worker-button"
-        />
-      </Card>
+        contentAlign="center"
+        showChevron={false}
+        style={{ alignSelf: 'center', height: 100, width: 280, borderWidth: strokes.default, borderColor: colors.primary, paddingHorizontal: 20, paddingVertical: 13 }}
+        onPress={() => selectRole('owner')}
+        testID="role-owner-card"
+      />
+      <ListItem
+        title="後継者さん / アルバイト"
+        contentAlign="center"
+        showChevron={false}
+        style={{ alignSelf: 'center', height: 100, width: 280, borderWidth: strokes.default, borderColor: colors.primary, paddingHorizontal: 20, paddingVertical: 13 }}
+        onPress={() => selectRole('worker')}
+        testID="role-worker-card"
+      />
     </PageLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  introduction: {
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  question: {
-    color: colors.text,
-    fontFamily: fonts.bold,
-    fontSize: 23,
-    includeFontPadding: false,
-    lineHeight: 30,
-    textAlign: 'center',
-  },
-  guide: {
-    color: colors.textSub,
-    fontFamily: fonts.medium,
-    fontSize: 15,
-    includeFontPadding: false,
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-});
