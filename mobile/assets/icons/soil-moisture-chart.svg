@@ -1,0 +1,25 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="296" height="170" viewBox="0 0 296 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Frame">
+<path id="Vector" d="M282 5H178C173.582 5 170 8.58172 170 13V157C170 161.418 173.582 165 178 165H282C286.418 165 290 161.418 290 157V13C290 8.58172 286.418 5 282 5Z" fill="#FFF7EB"/>
+<g id="Group">
+<g id="Vector_2">
+<path d="M28 20H290ZM28 60H290ZM28 100H290ZM28 140H290Z" fill="black"/>
+<path d="M28 20H290M28 60H290M28 100H290M28 140H290" stroke="#E7ECE3"/>
+</g>
+</g>
+<path id="Vector_3" d="M28 50L72 60L119 70L170 110L230 135L286 150V165H28V50Z" fill="#EFF7E8"/>
+<path id="Vector_4" d="M28 50L72 60L119 70L170 110" stroke="#6EBF3F" stroke-width="3"/>
+<path id="Vector_5" d="M170 110L230 135L286 150" stroke="#FD963F" stroke-width="3" stroke-dasharray="5 4"/>
+<g id="Vector_6">
+<path d="M28 140H290Z" fill="black"/>
+<path d="M28 140H290" stroke="#FD964F" stroke-dasharray="3 4"/>
+</g>
+<g id="Group_2">
+<path id="Vector_7" d="M28 54C30.2091 54 32 52.2091 32 50C32 47.7909 30.2091 46 28 46C25.7909 46 24 47.7909 24 50C24 52.2091 25.7909 54 28 54Z" fill="#6EBF3F"/>
+<path id="Vector_8" d="M72 64C74.2091 64 76 62.2091 76 60C76 57.7909 74.2091 56 72 56C69.7909 56 68 57.7909 68 60C68 62.2091 69.7909 64 72 64Z" fill="#6EBF3F"/>
+<path id="Vector_9" d="M119 74C121.209 74 123 72.2091 123 70C123 67.7909 121.209 66 119 66C116.791 66 115 67.7909 115 70C115 72.2091 116.791 74 119 74Z" fill="#6EBF3F"/>
+<path id="Vector_10" d="M170 115C172.761 115 175 112.761 175 110C175 107.239 172.761 105 170 105C167.239 105 165 107.239 165 110C165 112.761 167.239 115 170 115Z" fill="#6EBF3F"/>
+</g>
+<path id="Vector_11" d="M286 154C288.209 154 290 152.209 290 150C290 147.791 288.209 146 286 146C283.791 146 282 147.791 282 150C282 152.209 283.791 154 286 154Z" fill="#FD964F"/>
+</g>
+</svg>

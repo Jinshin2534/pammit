@@ -59,7 +59,7 @@ export function SmallButton({
           variant={isSoft ? 'body' : 'caption'}
           numberOfLines={1}
           style={{
-            color: isSoft ? colors.text : isOutline ? colors.primary : colors.textInverse,
+            color: isOutline ? colors.primary : isSoft ? colors.text : colors.textInverse,
             lineHeight: isSoft ? 15 : 13,
           }}>
           {label}
