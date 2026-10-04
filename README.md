@@ -42,9 +42,3 @@ AWS への構築とデプロイの手順は [docs/aws.md](docs/aws.md) にあり
 | [docs/ai.md](docs/ai.md) | 果実検出と判定の構成、評価 |
 | [docs/hardware.md](docs/hardware.md) | 帽子と園地センサーの構成 |
 | [docs/aws.md](docs/aws.md) | AWS の構成と操作、センサーの送信方法 |
-
-## 開発状況（2026-10-03）
-
-- API サーバー: ログイン、作業者・農園の管理、予定、作業の記録、センサーデータの受信を実装済み。判定・AI 相談・日誌などは開発中
-- 果実検出: Android 端末（Pixel 7a）での動作を確認済み
-- スマートフォンアプリ: 開発中
