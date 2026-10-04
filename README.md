@@ -14,7 +14,7 @@
         │ インターネット
 AWS（EC2 + RDS + S3）            記録・予定・AI相談・センサーデータ
         ↑
-園地センサー（ESP32）            土壌水分・気温・湿度・気圧
+農地センサー（ESP32）            土壌水分・気温・湿度・気圧
 ```
 
 ## ディレクトリ
@@ -36,11 +36,10 @@ AWS への構築とデプロイの手順は [docs/aws.md](docs/aws.md) にあり
 | 資料 | 内容 |
 |---|---|
 | [docs/overview.md](docs/overview.md) | 背景・対象者・課題・KPI |
-| [docs/requirements.md](docs/requirements.md) | 画面と機能、非機能要件 |
-| [docs/mobile-app-spec.md](docs/mobile-app-spec.md) | モバイルUI、オフライン同期、権限、必要なAPI差分を統合した実装仕様 |
+| [docs/requirements.md](docs/requirements.md) | 画面と機能、権限、通信が切れたときの扱い、非機能要件 |
 | [docs/data-model.md](docs/data-model.md) | テーブル設計 |
 | [docs/api.md](docs/api.md) | API の一覧と共通ルール |
 | [docs/labels.md](docs/labels.md) | 画像のラベル定義 |
 | [docs/ai.md](docs/ai.md) | 果実検出と判定の構成、評価 |
-| [docs/hardware.md](docs/hardware.md) | 帽子と園地センサーの構成 |
+| [docs/hardware.md](docs/hardware.md) | 帽子と農地センサーの構成 |
 | [docs/aws.md](docs/aws.md) | AWS の構成と操作、センサーの送信方法 |

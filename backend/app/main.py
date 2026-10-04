@@ -27,14 +27,14 @@ DESCRIPTION = """
 TAGS = [
     {"name": "auth", "description": "ログイン。作業者は管理者が登録し、4桁の PIN でログインする。"},
     {"name": "users", "description": "作業者の登録と変更。"},
-    {"name": "plots", "description": "農園（園地）。"},
+    {"name": "plots", "description": "農地（作業する場所）。"},
     {"name": "schedules", "description": "予定。人が1日ずつ入力する。"},
     {"name": "work-sessions", "description": "作業の開始から終了まで。帽子を使わない作業も記録する。"},
     {"name": "work-logs", "description": "作業ログ。作業の終了時に自動で作られる。"},
     {"name": "field", "description": "農園画面（土壌水分・天気・灌水の助言）と今日のひとこと。"},
     {"name": "chat", "description": "AI 相談と、相談に使う知識。"},
     {"name": "journals", "description": "農園日誌と PDF（管理者）。"},
-    {"name": "sensors", "description": "園地センサーからの受信と、測定値の参照。"},
+    {"name": "sensors", "description": "農地センサーからの受信と、測定値の参照。"},
     {"name": "evaluation", "description": "判定精度の評価結果。"},
     {"name": "health", "description": "動作確認。"},
 ]

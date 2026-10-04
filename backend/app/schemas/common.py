@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 class ErrorDetail(BaseModel):
     code: str = Field(description="機械可読なエラーコード", examples=["plot_not_found"])
-    message: str = Field(description="人間向けの説明", examples=["園地が見つかりません"])
+    message: str = Field(description="人間向けの説明", examples=["農地が見つかりません"])
     detail: dict[str, Any] | None = Field(default=None, description="追加情報")
 
 

@@ -37,7 +37,7 @@ def owner_user(user: User = Depends(current_user)) -> User:
 
 
 def get_plot_in_farm(db: Session, plot_id: int, farm_id: int) -> Plot:
-    """ほかの農園（経営体）の園地は、存在しないものとして扱う。"""
+    """ほかの農園（経営体）の農地は、存在しないものとして扱う。"""
     plot = db.get(Plot, plot_id)
     if plot is None or plot.farm_id != farm_id:
         api_error(404, "plot_not_found", "農園が見つかりません")

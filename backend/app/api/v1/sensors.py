@@ -36,7 +36,7 @@ JST = timezone(timedelta(hours=9))
     response_model=SensorIngestResult,
     summary="Wi-Fi直結ユニットから測定値を受け取る",
     description=(
-        "園地に常設したユニットから10〜30分間隔で送られる。\n\n"
+        "農地に常設したユニットから10〜30分間隔で送られる。\n\n"
         "**`soil_moisture_raw` は ADC の生値をそのまま送る。** 換算はサーバーで行う"
         "（校正式を直したとき、過去データを再計算できるようにするため）。\n\n"
         "**`battery_pct` は測れるなら必ず入れる。** 常設デバイスで電池切れに気づけないのは致命的。"
@@ -104,7 +104,7 @@ def ingest_lorawan(
     summary="測定値を参照する",
     description=(
         "`from` / `to` は日本時間の日付。新しい順に最大1000件。\n\n"
-        "`soil_moisture_pct` は園地の校正値（乾燥時・飽和時の生値）から換算する。校正値がなければ null。"
+        "`soil_moisture_pct` は農地の校正値（乾燥時・飽和時の生値）から換算する。校正値がなければ null。"
     ),
 )
 def list_readings(

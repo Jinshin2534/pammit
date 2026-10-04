@@ -32,7 +32,7 @@ class FieldSummary(BaseModel):
     plot_id: int
     plot_name: str
     measured_at: datetime | None = Field(default=None, description="最新の測定時刻")
-    soil_moisture_pct: float | None = Field(default=None, description="現在の土壌水分。校正値がない園地では null")
+    soil_moisture_pct: float | None = Field(default=None, description="現在の土壌水分。校正値がない農地では null")
     soil_change_24h: float | None = Field(default=None, description="24時間前との差（ポイント）")
     soil_forecast_tomorrow: float | None = Field(default=None, description="明日9時の予測。直近24時間の変化を直線で延ばす")
     soil_check_pct: float = Field(description="確認の目安（%）")

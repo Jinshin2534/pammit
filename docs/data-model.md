@@ -30,19 +30,19 @@ erDiagram
 | テーブル | 主な列 | 備考 |
 |---|---|---|
 | `farms` | `code`, `name` | 経営体 |
-| `users` | `farm_id`, `name`, `role`, `gender`, `worker_type`, `weekly_max_hours`, `pin_hash`, `failed_pin_count`, `locked_until`, `icon` | `role` は `owner` / `worker` |
+| `users` | `farm_id`, `name`, `role`, `gender`, `worker_type`, `weekly_max_hours`, `pin_hash`, `failed_pin_count`, `locked_until`, `icon`, `active` | `role` は `owner` / `worker`。`active` が偽の人は停止中 |
 
-## 園地
+## 農地
 
 | テーブル | 主な列 | 備考 |
 |---|---|---|
-| `plots` | `farm_id`, `name`, `municipality`, `latitude`, `longitude`, `cultivation_type`, `soil_check_pct`, `soil_dry_raw`, `soil_wet_raw` | 画面上の「農園」にあたる。`cultivation_type` は `house` / `open_field`（既定は `open_field`）。`soil_*` は土壌水分の換算と助言に使う |
+| `plots` | `farm_id`, `name`, `municipality`, `latitude`, `longitude`, `cultivation_type`, `soil_check_pct`, `soil_dry_raw`, `soil_wet_raw` | 作業する場所。画面では「農園」と表示する。`cultivation_type` は `house` / `open_field`（既定は `open_field`）。`soil_*` は土壌水分の換算と助言に使う |
 
 ## 予定と作業
 
 | テーブル | 主な列 | 備考 |
 |---|---|---|
-| `schedules` | `client_event_id`, `farm_id`, `plot_id`, `date`, `start_time`, `end_time`, `work_types`, `note` | 人が入力する予定 |
+| `schedules` | `client_event_id`, `farm_id`, `plot_id`, `date`, `start_time`, `end_time`, `work_types`, `note`, `created_by` | 人が入力する予定 |
 | `schedule_assignees` | `schedule_id`, `user_id` | 担当者（複数） |
 | `work_sessions` | `client_event_id`, `farm_id`, `plot_id`, `user_id`, `work_type`, `schedule_id`, `started_at`, `ended_at`, `config_snapshot` | 作業1回分。開始時に配った判定設定を `config_snapshot` に残す |
 | `detections` | `client_event_id`, `session_id`, `detected_at`, `verdict`, `model_version` ほか | 判定1件。列は [ai.md](ai.md) の検討結果に合わせて決める |
