@@ -62,13 +62,11 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.medium,
     fontSize: 35,
-    lineHeight: 51,
+    lineHeight: 42,
     includeFontPadding: false,
     textAlign: 'center',
   },
-  titleWithBack: {
-    paddingHorizontal: 72,
-  },
+  titleWithBack: {},
   backSlot: {
     position: 'absolute',
     left: 16,

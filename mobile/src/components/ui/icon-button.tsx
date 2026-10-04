@@ -57,13 +57,11 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     borderRadius: radii.full,
-    borderWidth: 1,
     height: 48,
     justifyContent: 'center',
     width: 48,
   },
   pressed: {
     opacity: 0.7,
-    transform: [{ scale: 0.96 }],
   },
 });

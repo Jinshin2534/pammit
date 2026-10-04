@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, ViewStyle } from 'react-nativ
 import { AppText } from '@/components/ui/app-text';
 import { colors, radii } from '@/theme/tokens';
 
-export type SmallButtonVariant = 'primary' | 'secondary' | 'outline';
+export type SmallButtonVariant = 'primary' | 'soft' | 'secondary' | 'outline';
 
 export type SmallButtonProps = {
   label: string;
@@ -17,6 +17,7 @@ export type SmallButtonProps = {
 
 const backgroundByVariant: Record<SmallButtonVariant, string> = {
   primary: colors.primary,
+  soft: colors.primarySoft,
   secondary: colors.secondary,
   outline: colors.surface,
 };
@@ -32,6 +33,7 @@ export function SmallButton({
 }: SmallButtonProps) {
   const isDisabled = disabled || loading;
   const isOutline = variant === 'outline';
+  const isSoft = variant === 'soft';
 
   return (
     <Pressable
@@ -45,6 +47,7 @@ export function SmallButton({
         {
           backgroundColor: isDisabled ? colors.disabled : backgroundByVariant[variant],
           borderColor: isOutline ? colors.primary : 'transparent',
+          borderWidth: isOutline ? 2 : 0,
         },
         pressed && styles.pressed,
         style,
@@ -52,7 +55,13 @@ export function SmallButton({
       {loading ? (
         <ActivityIndicator color={colors.textInverse} size="small" />
       ) : (
-        <AppText variant="captionBold" numberOfLines={1} style={{ color: isOutline ? colors.primary : colors.textInverse }}>
+        <AppText
+          variant={isSoft ? 'body' : 'caption'}
+          numberOfLines={1}
+          style={{
+            color: isSoft ? colors.text : isOutline ? colors.primary : colors.textInverse,
+            lineHeight: isSoft ? 15 : 13,
+          }}>
           {label}
         </AppText>
       )}
@@ -65,11 +74,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     borderRadius: radii.full,
-    borderWidth: 2,
-    height: 40,
+    height: 32,
     justifyContent: 'center',
-    minWidth: 88,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
   },
   pressed: {
     opacity: 0.7,

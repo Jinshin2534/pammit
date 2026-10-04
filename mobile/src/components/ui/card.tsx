@@ -72,6 +72,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: 15,
     includeFontPadding: false,
-    lineHeight: 18,
+    lineHeight: 15,
   },
 });
