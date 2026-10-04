@@ -1,6 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { ConnectionErrorBanners } from '@/components/feedback';
 import { HomePage } from '@/components/home/home-page';
 import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
 
@@ -16,23 +15,19 @@ export default function HomeScreen() {
   const { offline } = useLocalSearchParams<{ offline?: string }>();
   return (
     <HomePage
-      userName="確認ユーザー"
+      userName="近未来 すだち子"
       advice={{
-        summary: '今日は気温が上がる予報です。午前中の作業がおすすめです。',
-        detail: '午後は暑くなるため、こまめに休憩と水分補給をしてください。',
+        summary: '高温になる前に収穫。身が密集している木から先に着るのがおすすめです。',
+        detail: '日中の気温が上がると、作業する人の負担も大きくなります。午前中など比較的涼しい時間帯に、実が密集している木から確認してみましょう。込み合った部分を先に見ることで、残す実を見比べやすくなり、作業の優先順位も立てやすくなります。\n※最終的な摘果の基準や順番は、農園の状態・栽培方針に合わせて経験者の判断を優先してください。',
       }}
       schedules={[
-        { id: '1', start: '09:00', end: '10:30', work: '摘果・摘葉', place: '三番ハウス', members: ['確認ユーザー'] },
-        { id: '2', start: '13:00', end: '14:00', work: '灌水', place: '一番ハウス', members: ['山田さん'] },
+        { id: '1', start: '08:00', end: '11:30', work: '収穫', place: 'すだち農園', members: ['野﨑'] },
+        { id: '2', start: '13:00', end: '14:30', work: '防除', place: 'すだち農園', members: ['長谷川', '野﨑'] },
       ]}
-      statusBanner={
-        <ConnectionErrorBanners
-          networkDisconnected={offline === '1'}
-          onRetryNetwork={() => router.setParams({ offline: undefined })}
-          testID="home-connection-errors"
-        />
-      }
-      footer={<BottomNav role="owner" activeTab="home" onTabPress={(tab) => router.navigate(routes[tab])} />}
+      offline={offline === '1'}
+      footer={<BottomNav role="worker" activeTab="home" onTabPress={(tab) => router.navigate(routes[tab])} />}
+      onAdviceDetail={() => router.push('/home/advice')}
+      onSettings={() => router.push('/(tabs)/settings')}
       onWorkStart={() => router.push('/work')}
       onAi={() => router.push('/(tabs)/ai')}
       onSchedule={() => router.push('/(tabs)/schedule')}
