@@ -6,7 +6,7 @@ import { SettingsFrame } from '@/components/settings/settings-frame';
 import { AppText, Button, TextField } from '@/components/ui';
 import { colors } from '@/theme/tokens';
 
-const mascot = require('../../../assets/figma/settings/mascot-2.png');
+const mascot = require('../../../assets/images/empty-schedule-character-2.png');
 
 export default function ProfileScreen() {
   const [name, setName] = useState('巣立 好喜子');
