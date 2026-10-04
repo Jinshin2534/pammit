@@ -21,6 +21,7 @@ AWS（EC2 + RDS + S3）            記録・予定・AI相談・センサーデ�
 
 | パス | 内容 |
 |---|---|
+| `mobile/` | Androidアプリ（Expo + React Native） |
 | `backend/` | API サーバー（FastAPI） |
 | `infra/` | AWS の構成（CDK） |
 | `docs/` | 仕様と運用の資料 |
@@ -36,6 +37,7 @@ AWS への構築とデプロイの手順は [docs/aws.md](docs/aws.md) にあり
 |---|---|
 | [docs/overview.md](docs/overview.md) | 背景・対象者・課題・KPI |
 | [docs/requirements.md](docs/requirements.md) | 画面と機能、非機能要件 |
+| [docs/mobile-app-spec.md](docs/mobile-app-spec.md) | モバイルUI、オフライン同期、権限、必要なAPI差分を統合した実装仕様 |
 | [docs/data-model.md](docs/data-model.md) | テーブル設計 |
 | [docs/api.md](docs/api.md) | API の一覧と共通ルール |
 | [docs/labels.md](docs/labels.md) | 画像のラベル定義 |

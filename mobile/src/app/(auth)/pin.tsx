@@ -7,6 +7,7 @@ import { HeaderBackground } from '@/components/background/header-background';
 import { PageLayout } from '@/components/layout/page-layout';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { AppText } from '@/components/ui';
+import { useAppState } from '@/providers/app-state';
 import { colors, radii } from '@/theme/tokens';
 
 type KeyValue = `${0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}` | 'submit' | 'delete';
@@ -22,12 +23,20 @@ const submitIcon = require('../../../assets/figma/auth-home/pin-04.svg');
 const deleteIcon = require('../../../assets/figma/auth-home/pin-05.svg');
 
 export default function PinScreen() {
-  const { userName = '近未来 すだち子' } = useLocalSearchParams<{ userName?: string }>();
+  const { role: roleParam, userName = '近未来 すだち子' } = useLocalSearchParams<{
+    role?: string;
+    userName?: string;
+  }>();
+  const role = roleParam === 'owner' ? 'owner' : 'worker';
+  const { setSession } = useAppState();
   const [pin, setPin] = useState('');
 
   const pressKey = (value: KeyValue) => {
     if (value === 'submit') {
-      if (pin.length === 4) router.replace('/(tabs)');
+      if (pin.length === 4) {
+        setSession({ role, userName });
+        router.replace('/(tabs)');
+      }
       return;
     }
     if (value === 'delete') {

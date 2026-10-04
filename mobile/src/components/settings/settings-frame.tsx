@@ -8,6 +8,7 @@ import { PageLayout } from '@/components/layout/page-layout';
 import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
 import { AppText, Button } from '@/components/ui';
 import { colors, radii } from '@/theme/tokens';
+import { useAppState } from '@/providers/app-state';
 
 const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/farm' | '/(tabs)/ai' | '/admin'> = {
   home: '/(tabs)',
@@ -59,12 +60,13 @@ function SettingsTopBar() {
 }
 
 function SettingsFooter({ onSave, saved }: Pick<SettingsFrameProps, 'onSave' | 'saved'>) {
+  const { session } = useAppState();
   return (
     <View style={[styles.footer, onSave && styles.footerWithSave]}>
       {onSave && (
         <Button label="保存" variant="cta" size="md" onPress={onSave} style={styles.saveButton} testID="settings-save" />
       )}
-      <BottomNav role="worker" onTabPress={(tab) => router.navigate(routes[tab])} testID="settings-bottom-nav" />
+      <BottomNav role={session.role} onTabPress={(tab) => router.navigate(routes[tab])} testID="settings-bottom-nav" />
       {saved && (
         <View accessibilityRole="alert" style={styles.toast} testID="settings-saved-toast">
           <AppText variant="bodyBold" style={styles.toastText}>保存しました</AppText>
@@ -109,6 +111,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     alignSelf: 'center',
+    paddingHorizontal: 8,
     width: 80,
   },
   toast: {

@@ -1,7 +1,9 @@
 export { CalendarDay } from './calendar-day';
 export type { CalendarDayProps } from './calendar-day';
 export { ScheduleCard } from './schedule-card';
-export type { ScheduleCardProps } from './schedule-card';
+export type { ScheduleCardAppearance, ScheduleCardLayout, ScheduleCardProps } from './schedule-card';
+export { ScheduleRow } from './schedule-row';
+export type { ScheduleRowItem, ScheduleRowProps } from './schedule-row';
 export { ScheduleCarousel } from './schedule-carousel';
 export type { ScheduleCarouselItem, ScheduleCarouselProps } from './schedule-carousel';
 export { WorkTypeLegend } from './work-type-legend';

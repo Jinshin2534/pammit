@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { HeaderBackground } from '@/components/background/header-background';
@@ -8,6 +8,7 @@ import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { AppText } from '@/components/ui';
 import { colors, radii, strokes } from '@/theme/tokens';
+import { useAppState } from '@/providers/app-state';
 
 const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/farm' | '/(tabs)/ai' | '/admin'> = {
   home: '/(tabs)',
@@ -21,6 +22,18 @@ const hill = require('../../../assets/figma/auth-home/advice-02.svg');
 const robot = require('../../../assets/figma/auth-home/robot-advice-2.png');
 
 export default function HomeAdviceScreen() {
+  const { userName: userNameParam } = useLocalSearchParams<{
+    role?: string;
+    userName?: string;
+  }>();
+  const { session } = useAppState();
+  const role = session.role;
+  const userName = userNameParam ?? session.userName;
+
+  const navigateTab = (tab: BottomNavTab) => {
+    router.navigate({ pathname: routes[tab], params: { role, userName } });
+  };
+
   return (
     <PageLayout
       background={
@@ -29,8 +42,9 @@ export default function HomeAdviceScreen() {
           <Image source={hill} style={styles.hill} contentFit="fill" accessible={false} />
         </>
       }
-      header={<ScreenHeader title="今日のひとことAI" />}
-      footer={<BottomNav role="worker" activeTab="home" onTabPress={(tab) => router.navigate(routes[tab])} />}
+      header={<ScreenHeader title="今日のひとことAI" showBack onBack={() => router.back()} titleStyle={styles.title} />}
+      footer={<BottomNav role={role} activeTab="home" onTabPress={navigateTab} />}
+      scrollable={false}
       testID="home-advice-screen">
       <Image source={robot} style={styles.robot} contentFit="contain" accessible={false} />
 
@@ -52,11 +66,16 @@ export default function HomeAdviceScreen() {
 const styles = StyleSheet.create({
   hill: {
     height: 114,
-    left: -112,
+    left: 0,
     position: 'absolute',
     top: 258,
     transform: [{ scaleY: -1 }],
-    width: 568,
+    width: 360,
+  },
+  title: {
+    fontSize: 30,
+    lineHeight: 36,
+    paddingHorizontal: 64,
   },
   robot: {
     alignSelf: 'center',

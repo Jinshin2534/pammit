@@ -21,7 +21,7 @@ export default function BottomNavPreview() {
   return (
     <PageLayout
       testID="bottom-nav-preview-ready"
-      header={<ScreenHeader title={titles[tab]} topPadding={16} />}
+      header={<ScreenHeader title={titles[tab]} />}
       footer={<BottomNav role={role} activeTab={tab} onTabPress={setTab} testID="bottom-nav" />}>
       <Text style={styles.text}>下のタブを押すと、選んだ画面のタイトルを表示します。</Text>
       <View style={styles.roles}>

@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -15,14 +16,21 @@ export function Dropdown({ label, options, value, onChange, multiple = false, pl
     else { onChange([next]); setOpen(false); }
   };
   return (
-    <View style={styles.wrapper} testID={testID}>
+    <View style={[styles.wrapper, open && styles.wrapperOpen]} testID={testID}>
       {label ? <AppText variant="bodyLg" style={styles.label}>{label}</AppText> : null}
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: open, disabled }} disabled={disabled} onPress={() => setOpen((current) => !current)} style={({ pressed }) => [styles.field, disabled && styles.disabled, pressed && styles.pressed]} testID={testID ? `${testID}-toggle` : undefined}>
         <AppText variant="bodyLg" numberOfLines={1} style={[styles.fieldText, !selectedLabels.length ? styles.placeholder : undefined]}>{selectedLabels.join(' / ') || placeholder}</AppText>
-        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.chevron, open && styles.chevronOpen]} />
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.chevronSlot}>
+          <Image
+            accessible={false}
+            contentFit="fill"
+            source={require('../../../assets/images/admin/dropdown-chevron.svg')}
+            style={styles.chevron}
+          />
+        </View>
       </Pressable>
       {open ? (
-        <View accessibilityRole="list" style={styles.options}>
+        <View accessibilityRole="list" style={[styles.options, { top: label ? 91 : 64 }]}>
           {options.map((option) => {
             const selected = value.includes(option.value);
             return (
@@ -47,12 +55,13 @@ export function Dropdown({ label, options, value, onChange, multiple = false, pl
 
 const styles = StyleSheet.create({
   wrapper: { alignSelf: 'stretch', gap: 6 },
+  wrapperOpen: { zIndex: 20 },
   label: { lineHeight: 25, marginBottom: 2 },
   field: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, flexDirection: 'row', height: 58, justifyContent: 'space-between', overflow: 'hidden', paddingHorizontal: 20 },
   fieldText: { flex: 1, lineHeight: 25 },
-  chevron: { borderLeftColor: 'transparent', borderLeftWidth: 6, borderRightColor: 'transparent', borderRightWidth: 6, borderTopColor: colors.primary, borderTopWidth: 8, height: 0, marginLeft: 12, width: 0 },
-  chevronOpen: { transform: [{ rotate: '180deg' }] },
-  options: { backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, overflow: 'hidden', paddingVertical: 6 },
+  chevronSlot: { alignItems: 'center', height: 10, justifyContent: 'center', marginLeft: 12, width: 14 },
+  chevron: { height: 7.5, transform: [{ rotate: '180deg' }], width: 12.1244 },
+  options: { backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, left: 0, overflow: 'hidden', paddingVertical: 6, position: 'absolute', right: 0, zIndex: 30 },
   option: { height: 48, justifyContent: 'center', paddingHorizontal: 20 },
   optionSelected: { backgroundColor: colors.accent },
   optionText: { lineHeight: 25 },

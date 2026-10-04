@@ -6,7 +6,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '@/theme/tokens';
 
@@ -33,6 +33,7 @@ export function PageLayout({
   scrollable = true,
   testID,
 }: PageLayoutProps) {
+  const insets = useSafeAreaInsets();
   const contentStyle = [
     styles.content,
     { paddingHorizontal: contentPadding },
@@ -47,7 +48,7 @@ export function PageLayout({
             {background}
           </View>
         )}
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
           <KeyboardAvoidingView
             style={styles.safeArea}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -70,7 +71,9 @@ export function PageLayout({
               </View>
             )}
             {footer != null && (
-              <View style={[styles.fixed, styles.footer]} testID={testID ? `${testID}-footer` : undefined}>
+              <View
+                style={[styles.fixed, styles.footer, { paddingBottom: 10 + insets.bottom }]}
+                testID={testID ? `${testID}-footer` : undefined}>
                 {footer}
               </View>
             )}
@@ -94,5 +97,8 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   centered: { justifyContent: 'center' },
-  footer: { paddingBottom: 10 },
+  footer: {
+    backgroundColor: colors.surface,
+    zIndex: 2,
+  },
 });

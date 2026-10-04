@@ -18,25 +18,45 @@ export default function RoleScreen() {
       variant="centered"
       scrollable={false}
       testID="role-screen">
-      <AppText variant="title" style={{ alignSelf: 'center', textAlign: 'center', width: 315 }}>
+      <AppText variant="title" style={styles.title}>
         {'どちらが\nログインしますか？'}
       </AppText>
       <ListItem
-        title="師匠農家さん"
+        title="師匠さん"
         contentAlign="center"
         showChevron={false}
-        style={{ alignSelf: 'center', height: 100, width: 280, borderWidth: strokes.default, borderColor: colors.primary, paddingHorizontal: 20, paddingVertical: 13 }}
+        style={styles.item}
         onPress={() => selectRole('owner')}
         testID="role-owner-card"
       />
       <ListItem
-        title="後継者さん / アルバイト"
+        title="後継者さん"
         contentAlign="center"
         showChevron={false}
-        style={{ alignSelf: 'center', height: 100, width: 280, borderWidth: strokes.default, borderColor: colors.primary, paddingHorizontal: 20, paddingVertical: 13 }}
+        style={styles.item}
         onPress={() => selectRole('worker')}
         testID="role-worker-card"
       />
     </PageLayout>
   );
 }
+
+const styles = {
+  title: {
+    alignSelf: 'center' as const,
+    lineHeight: 51,
+    textAlign: 'center' as const,
+    transform: [{ translateY: -4 }],
+    width: 315,
+  },
+  item: {
+    alignSelf: 'center' as const,
+    borderColor: colors.primary,
+    borderWidth: strokes.default,
+    height: 100,
+    paddingHorizontal: 20,
+    paddingVertical: 13,
+    transform: [{ translateY: -4 }],
+    width: 280,
+  },
+};

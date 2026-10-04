@@ -4,14 +4,21 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AdminHeader, AdminPage, AdminTextField, adminTextStyles } from '@/components/admin/figma-admin-ui';
 import { colors, radii } from '@/theme/tokens';
+import { useAppState } from '@/providers/app-state';
 
 export default function JournalDayScreen() {
-  const { day = '10' } = useLocalSearchParams<{ day?: string }>();
-  const [note, setNote] = useState('午後から風が強くなった');
+  const { date = '2026-10-10' } = useLocalSearchParams<{ date?: string }>();
+  const { journalEntries, saveJournal } = useAppState();
+  const existing = journalEntries.find((entry) => entry.date === date);
+  const [note, setNote] = useState(existing?.note ?? '');
+  const parsed = new Date(`${date}T12:00:00`);
+  const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+  const hasContent = date === '2026-10-10' || Boolean(existing?.note.trim());
+  const updateNote = (value: string) => { setNote(value); saveJournal({ date, note: value }); };
 
   return (
-    <AdminPage bottomNav header={<AdminHeader showBack title={`10/${day}（土）`} onBack={() => router.back()} />} contentStyle={styles.content} testID="journal-day-screen">
-      <View style={styles.summary}>
+    <AdminPage bottomNav header={<AdminHeader showBack title={`${parsed.getMonth() + 1}/${parsed.getDate()}（${weekdays[parsed.getDay()]}）`} onBack={() => router.back()} />} contentStyle={styles.content} testID="journal-day-screen">
+      {hasContent ? <><View style={styles.summary}>
         <Metric label="天気" value="晴れ" note="朝の予報" />
         <Metric label="気温" value="28℃" note="最低 18℃" />
         <Metric label="作業人数" value="3人" note="　" />
@@ -20,8 +27,8 @@ export default function JournalDayScreen() {
         <Text maxFontSizeMultiplier={1.2} style={adminTextStyles.bodyLg}>作業</Text>
         <ScheduleCard start="08:00" end="11:30" work="収穫" place="三番ハウス" people="野﨑・永田" />
         <ScheduleCard start="13:00" end="14:30" work="防除" place="すだち農園" people="長谷川" />
-      </View>
-      <AdminTextField label="備考" value={note} onChangeText={setNote} />
+      </View></> : <Text maxFontSizeMultiplier={1.2} style={styles.emptyMessage}>この日の日誌はまだありません</Text>}
+      <AdminTextField label="備考" value={note} onChangeText={updateNote} />
     </AdminPage>
   );
 }
@@ -67,4 +74,5 @@ const styles = StyleSheet.create({
   workTitle: { color: colors.textInverse, fontFamily: adminTextStyles.bodyLg.fontFamily, fontSize: 23, includeFontPadding: false, lineHeight: 25 },
   meta: { gap: 3 },
   pressed: { opacity: 0.7 },
+  emptyMessage: { ...adminTextStyles.bodyLg, alignSelf: 'center', color: colors.textSub, marginVertical: 36 },
 });

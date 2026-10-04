@@ -17,12 +17,12 @@ type WorkPageProps = {
 };
 
 export function WorkPage({ children, header, footer, backgroundPosition = 'top', contentStyle, scrollable = false, testID }: WorkPageProps) {
-  const content = <View style={[styles.content, contentStyle]}>{children}</View>;
+  const content = <View style={[styles.content, scrollable && styles.scrollPageContent, contentStyle]}>{children}</View>;
 
   return (
     <View style={styles.page} testID={testID}>
       <HeaderBackground position={backgroundPosition} />
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
         {header}
         {scrollable ? (
           <ScrollView style={styles.body} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -43,12 +43,12 @@ export function WorkTitleHeader({ title }: { title: string }) {
   );
 }
 
-export function WorkStepHeader({ current, title }: { current: number; title: string }) {
+export function WorkStepHeader({ current, title, total = 5 }: { current: number; title: string; total?: number }) {
   return (
     <View style={styles.stepHeader}>
-      <View style={styles.steps}>
+      <View style={[styles.steps, total === 5 && styles.stepsFive]}>
         <View style={styles.stepLine} />
-        {[1, 2, 3, 4].map((number) => (
+        {Array.from({ length: total }, (_, index) => index + 1).map((number) => (
           <View key={number} style={[styles.stepDot, number === current && styles.currentStep]}>
             <Text maxFontSizeMultiplier={1.2} style={[styles.stepNumber, number === current && styles.currentStepNumber]}>{number}</Text>
           </View>
@@ -67,9 +67,9 @@ export function WorkBackButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-export function WorkButton({ label, onPress, variant = 'primary', disabled = false, style }: { label: string; onPress: () => void; variant?: 'primary' | 'cta'; disabled?: boolean; style?: ViewStyle }) {
+export function WorkButton({ label, onPress, onLongPress, accessibilityHint, variant = 'primary', disabled = false, style }: { label: string; onPress: () => void; onLongPress?: () => void; accessibilityHint?: string; variant?: 'primary' | 'cta'; disabled?: boolean; style?: ViewStyle }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, variant === 'cta' && styles.ctaButton, disabled && styles.disabledButton, pressed && styles.pressed, style]}>
+    <Pressable accessibilityHint={accessibilityHint} accessibilityRole="button" accessibilityState={{ disabled }} delayLongPress={800} disabled={disabled} onLongPress={onLongPress} onPress={onPress} style={({ pressed }) => [styles.button, variant === 'cta' && styles.ctaButton, disabled && styles.disabledButton, pressed && styles.pressed, style]}>
       <Text maxFontSizeMultiplier={1.2} style={styles.buttonText}>{label}</Text>
     </Pressable>
   );
@@ -133,52 +133,54 @@ export function WorkCounts() {
 }
 
 export const workTextStyles = StyleSheet.create({
-  title: { color: colors.text, fontFamily: fonts.medium, fontSize: 35, includeFontPadding: false, lineHeight: 45, textAlign: 'center' },
-  bodyLg: { color: colors.text, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 25 },
-  body: { color: colors.text, fontFamily: fonts.medium, fontSize: 15, includeFontPadding: false, lineHeight: 15 },
-  caption: { color: colors.text, fontFamily: fonts.medium, fontSize: 13, includeFontPadding: false, lineHeight: 13 },
-  small: { color: colors.text, fontFamily: fonts.medium, fontSize: 10, includeFontPadding: false, lineHeight: 10 },
-  bodyLgBold: { color: colors.text, fontFamily: fonts.bold, fontSize: 23, includeFontPadding: false, lineHeight: 25 },
+  title: { color: colors.text, fontFamily: fonts.medium, fontSize: 35, includeFontPadding: false, lineHeight: 42, textAlign: 'center' },
+  bodyLg: { color: colors.text, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 28 },
+  body: { color: colors.text, fontFamily: fonts.medium, fontSize: 15, includeFontPadding: false, lineHeight: 18 },
+  caption: { color: colors.text, fontFamily: fonts.medium, fontSize: 13, includeFontPadding: false, lineHeight: 16 },
+  small: { color: colors.text, fontFamily: fonts.medium, fontSize: 10, includeFontPadding: false, lineHeight: 12 },
+  bodyLgBold: { color: colors.text, fontFamily: fonts.bold, fontSize: 23, includeFontPadding: false, lineHeight: 28 },
 });
 
 const styles = StyleSheet.create({
   page: { alignSelf: 'center', backgroundColor: colors.surface, flex: 1, maxWidth: 360, width: '100%' },
   safeArea: { flex: 1 },
   body: { flex: 1, minHeight: 0 },
-  content: { alignItems: 'center', flex: 1, gap: spacing.gap, overflow: 'hidden', paddingBottom: 24, paddingHorizontal: spacing.pageX, paddingTop: 8 },
+  content: { alignItems: 'center', flexGrow: 1, gap: spacing.gap, overflow: 'hidden', paddingBottom: 24, paddingHorizontal: spacing.pageX, paddingTop: 8 },
+  scrollPageContent: { flexShrink: 0, overflow: 'visible' },
   scrollContent: { flexGrow: 1 },
-  titleHeader: { alignItems: 'center', paddingBottom: 24, paddingHorizontal: spacing.pageX, paddingTop: 40, width: '100%' },
-  title: { color: colors.text, fontFamily: fonts.medium, fontSize: 35, includeFontPadding: false, lineHeight: 45, textAlign: 'center' },
-  stepHeader: { alignItems: 'center', gap: 38, paddingBottom: 24, paddingTop: 40, width: '100%' },
+  titleHeader: { alignItems: 'center', paddingBottom: 26, paddingHorizontal: spacing.pageX, paddingTop: 40, width: '100%' },
+  title: { color: colors.text, fontFamily: fonts.medium, fontSize: 35, includeFontPadding: false, lineHeight: 42, textAlign: 'center' },
+  stepHeader: { alignItems: 'center', gap: 38, paddingBottom: 21, paddingTop: 40, width: '100%' },
   steps: { alignItems: 'center', flexDirection: 'row', gap: 42, justifyContent: 'center', position: 'relative', width: 295 },
+  stepsFive: { gap: 21 },
   stepLine: { backgroundColor: colors.disabled, height: 3, left: 21, position: 'absolute', right: 21, top: 20 },
   stepDot: { alignItems: 'center', backgroundColor: colors.disabled, borderRadius: radii.full, height: 42, justifyContent: 'center', width: 42 },
   currentStep: { backgroundColor: colors.accent },
-  stepNumber: { color: colors.text, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 25, textAlign: 'center' },
+  stepNumber: { color: colors.text, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 28, textAlign: 'center' },
   currentStepNumber: { color: colors.textInverse },
-  bodyLg: { color: colors.text, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 25 },
+  bodyLg: { color: colors.text, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 28 },
   bodyMd: { color: colors.text, fontFamily: fonts.medium, fontSize: 20, includeFontPadding: false, lineHeight: 25, textAlign: 'center' },
   backButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radii.full, height: 48, justifyContent: 'center', overflow: 'hidden', width: 48 },
   backIcon: { height: 59, width: 59 },
   button: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radii.full, height: 48, justifyContent: 'center', width: 152 },
   ctaButton: { backgroundColor: colors.cta },
   disabledButton: { backgroundColor: colors.disabled },
-  buttonText: { color: colors.textInverse, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 25, textAlign: 'center' },
+  buttonText: { color: colors.textInverse, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 28, textAlign: 'center' },
   flowFooter: { gap: 8, paddingBottom: 32, paddingHorizontal: spacing.pageX, paddingTop: 12, width: '100%' },
   flowRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
-  status: { alignSelf: 'stretch', color: colors.primary, fontFamily: fonts.medium, fontSize: 15, includeFontPadding: false, lineHeight: 15, textAlign: 'right' },
-  choice: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, height: 58, justifyContent: 'center', paddingHorizontal: 20 },
+  status: { alignSelf: 'stretch', color: colors.primary, fontFamily: fonts.medium, fontSize: 15, includeFontPadding: false, lineHeight: 18, textAlign: 'right' },
+  choice: { alignItems: 'flex-start', alignSelf: 'stretch', backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, height: 58, justifyContent: 'center', paddingHorizontal: 20 },
   selectedChoice: { backgroundColor: colors.accent },
   selectedChoiceText: { color: colors.textInverse },
   fieldGroup: { alignSelf: 'stretch', gap: 8 },
   field: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, flexDirection: 'row', height: 58, paddingHorizontal: 20 },
-  activeHeader: { alignItems: 'center', gap: 4, paddingBottom: 8, paddingTop: 40, width: '100%' },
+  activeHeader: { alignItems: 'center', gap: 4, paddingBottom: 5, paddingTop: 40, width: '100%' },
   activeHeaderCompact: { paddingTop: 16 },
   display: { color: colors.text, fontFamily: fonts.bold, fontSize: 55, includeFontPadding: false, lineHeight: 67, textAlign: 'center' },
   counts: { alignItems: 'center', flexDirection: 'row', height: 106, justifyContent: 'space-between', width: '100%' },
   countGroup: { alignItems: 'center', flexDirection: 'row', height: '100%' },
-  countCopy: { alignItems: 'center', gap: 22, width: 92 },
+  countCopy: { alignItems: 'center', gap: 9, width: 92 },
   divider: { backgroundColor: colors.text, height: 64, marginHorizontal: 1, width: 2 },
-  number: { color: colors.text, fontFamily: fonts.medium, fontSize: 60, includeFontPadding: false, lineHeight: 60, textAlign: 'center' },
+  number: { color: colors.text, fontFamily: fonts.medium, fontSize: 60, includeFontPadding: false, lineHeight: 72, textAlign: 'center' },
   pressed: { opacity: 0.7 },
 });

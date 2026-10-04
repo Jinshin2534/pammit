@@ -11,10 +11,14 @@ export default function WorkTypeScreen() {
   const params = useLocalSearchParams<{ plot?: string; work?: string }>();
   const [work, setWork] = useState(params.work ?? '');
 
+  const goNext = () => {
+    router.push({ pathname: '/work/worker', params: { plot: params.plot, work } } as never);
+  };
+
   return (
     <WorkPage
       header={<WorkStepHeader current={2} title="作業を選ぶ" />}
-      footer={<WorkFlowFooter onBack={() => router.back()} onNext={() => router.push({ pathname: '/work/hat', params: { plot: params.plot, work } })} nextDisabled={!work} />}
+      footer={<WorkFlowFooter onBack={() => router.back()} onNext={goNext} nextDisabled={!work} />}
       scrollable
       testID="work-type-screen">
       <View style={styles.options}>

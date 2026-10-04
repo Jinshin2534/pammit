@@ -18,7 +18,7 @@ export default function PageLayoutPreview() {
   return (
     <PageLayout
       testID="page-layout-preview-ready"
-      header={<ScreenHeader title="画面の骨格" topPadding={16} testID="page-layout-header" />}
+      header={<ScreenHeader title="画面の骨格" testID="page-layout-header" />}
       variant={centered ? 'centered' : 'standard'}
       contentPadding={mode === 'wide' ? 16 : 40}
       footer={

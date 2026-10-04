@@ -13,7 +13,7 @@ export default function InsightScreen() {
   return (
     <View style={styles.page} testID="work-insight-screen">
       <Image source={require('../../../assets/images/work-finish-ellipse.svg')} style={styles.ellipse} contentFit="fill" accessible={false} />
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
         <View style={styles.header}>
           <Text maxFontSizeMultiplier={1.2} style={workTextStyles.title}>作業フィニッシュ！</Text>
           <Text maxFontSizeMultiplier={1.2} style={workTextStyles.body}>切る75 / 残す56 / 判断不可2</Text>

@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, IconButton } from '@/components/ui';
@@ -18,7 +17,7 @@ export function FlowFooter({ nextLabel = '次へ', onNext, onBack, nextDisabled 
       {onBack ? (
         <IconButton
           accessibilityLabel="戻る"
-          icon={<Image accessible={false} contentFit="fill" source={require('../../../assets/icons/chevron-left.svg')} style={styles.backIcon} />}
+          icon="back"
           onPress={onBack}
           testID={testID ? `${testID}-back` : undefined}
         />
@@ -30,6 +29,5 @@ export function FlowFooter({ nextLabel = '次へ', onNext, onBack, nextDisabled 
 
 const styles = StyleSheet.create({
   footer: { alignItems: 'center', alignSelf: 'center', flexDirection: 'row', justifyContent: 'space-between', width: 281 },
-  backIcon: { height: 59, width: 59 },
   backPlaceholder: { height: 48, width: 48 },
 });

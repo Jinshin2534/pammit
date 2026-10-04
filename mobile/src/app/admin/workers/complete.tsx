@@ -9,7 +9,7 @@ export default function WorkerCompleteScreen() {
 
   return (
     <AdminPage header={<AdminHeader title="登録完了" />} contentStyle={styles.content} footer={<View style={styles.footer}><AdminButton label="管理者画面へ戻る" size="lg" fullWidth onPress={() => router.replace('/admin')} /></View>} testID="worker-complete-screen">
-      <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={[adminTextStyles.bodyLg, styles.completeText]}>{name} さんを登録しました</Text>
+      <Text maxFontSizeMultiplier={1.2} style={[adminTextStyles.bodyLg, styles.completeText]}>{name} さんを登録しました</Text>
       <View style={styles.pinCard}>
         <Text maxFontSizeMultiplier={1.2} style={adminTextStyles.body}>ログイン用のPIN</Text>
         <Text maxFontSizeMultiplier={1.2} style={styles.pin}>4821</Text>
@@ -21,9 +21,9 @@ export default function WorkerCompleteScreen() {
 
 const styles = StyleSheet.create({
   content: { justifyContent: 'center' },
-  completeText: { textAlign: 'center', width: 328 },
-  pinCard: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, gap: 4, paddingVertical: 20 },
-  pin: { color: colors.text, fontFamily: fonts.medium, fontSize: 60, includeFontPadding: false, lineHeight: 64 },
+  completeText: { alignSelf: 'stretch', lineHeight: 31, textAlign: 'center' },
+  pinCard: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, gap: 4, height: 92, paddingVertical: 7 },
+  pin: { color: colors.text, fontFamily: fonts.medium, fontSize: 40, includeFontPadding: false, lineHeight: 48 },
   caption: { alignSelf: 'stretch', textAlign: 'center' },
   footer: { paddingBottom: 32, paddingHorizontal: 40, paddingTop: 12, width: '100%' },
 });

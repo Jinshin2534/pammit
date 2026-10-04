@@ -8,6 +8,7 @@ import { PageLayout } from '@/components/layout/page-layout';
 import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { ListItem } from '@/components/ui';
+import { useAppState } from '@/providers/app-state';
 
 const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/farm' | '/(tabs)/ai' | '/admin'> = {
   home: '/(tabs)',
@@ -18,6 +19,7 @@ const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/far
 };
 
 export default function SettingsScreen() {
+  const { session } = useAppState();
   const [logoutOpen, setLogoutOpen] = useState(false);
 
   return (
@@ -26,7 +28,7 @@ export default function SettingsScreen() {
       header={<ScreenHeader title="設定" />}
       footer={
         <BottomNav
-          role="worker"
+          role={session.role}
           onTabPress={(tab) => router.navigate(routes[tab])}
           testID="settings-bottom-nav"
         />

@@ -12,6 +12,26 @@ export type RadioProps = {
   testID?: string;
 };
 
+export type RadioControlProps = {
+  selected: boolean;
+  disabled?: boolean;
+  testID?: string;
+};
+
+export function RadioControl({ selected, disabled = false, testID }: RadioControlProps) {
+  return (
+    <View style={disabled && styles.disabled} testID={testID}>
+      {selected ? (
+        <View style={styles.selected} />
+      ) : (
+        <Svg accessibilityElementsHidden height={30} importantForAccessibility="no-hide-descendants" width={30}>
+          <Circle cx={15} cy={15} fill="none" r={11.5} stroke={colors.primary} strokeDasharray="3 6" strokeLinecap="round" strokeWidth={3} />
+        </Svg>
+      )}
+    </View>
+  );
+}
+
 export function Radio({ label, selected, onPress, disabled = false, testID }: RadioProps) {
   return (
     <Pressable
@@ -21,13 +41,7 @@ export function Radio({ label, selected, onPress, disabled = false, testID }: Ra
       onPress={onPress}
       testID={testID}
       style={({ pressed }) => [styles.row, pressed && styles.pressed, disabled && styles.disabled]}>
-      {selected ? (
-        <View style={styles.selected} />
-      ) : (
-        <Svg accessibilityElementsHidden height={30} importantForAccessibility="no-hide-descendants" width={30}>
-          <Circle cx={15} cy={15} fill="none" r={11.5} stroke={colors.primary} strokeDasharray="3 6" strokeLinecap="round" strokeWidth={3} />
-        </Svg>
-      )}
+      <RadioControl selected={selected} />
       <AppText variant="bodyLg">{label}</AppText>
     </Pressable>
   );

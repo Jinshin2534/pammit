@@ -15,7 +15,7 @@ export default function ActiveWorkScreen() {
     <WorkPage
       backgroundPosition="center"
       header={<>{disconnected ? <ConnectionBanner kind="hat" /> : params.offline === '1' ? <ConnectionBanner kind="network" /> : null}<ActiveWorkHeader plot={plot} work={work} compact={disconnected || params.offline === '1'} /></>}
-      footer={<View style={styles.footer}><WorkButton label="作業終了" variant="cta" onPress={() => router.push({ pathname: '/work/finish', params })} /><Text maxFontSizeMultiplier={1.2} style={workTextStyles.caption}>長押し</Text></View>}
+      footer={<View style={styles.footer}><WorkButton accessibilityHint="長押しすると終了確認へ進みます" label="作業終了" variant="cta" onLongPress={() => router.push({ pathname: '/work/finish', params })} onPress={() => undefined} /><Text maxFontSizeMultiplier={1.2} style={workTextStyles.caption}>長押し</Text></View>}
       contentStyle={styles.content}
       testID="work-active-screen">
       {withHat ? (
@@ -28,7 +28,7 @@ export default function ActiveWorkScreen() {
       ) : (
         <>
           <Text maxFontSizeMultiplier={1.2} style={workTextStyles.bodyLgBold}>00:12:34</Text>
-          <WorkChoice label="AI相談" onPress={() => router.push('/(tabs)/ai')} />
+          <WorkChoice label="AI相談ログ" onPress={() => router.push('/work/log')} />
         </>
       )}
     </WorkPage>
@@ -53,5 +53,5 @@ const styles = StyleSheet.create({
   banner: { alignItems: 'center', backgroundColor: colors.cta, flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 12, width: '100%' },
   alertIcon: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.full, height: 24, justifyContent: 'center', width: 24 },
   alertMark: { color: colors.cta, fontFamily: fonts.bold, fontSize: 15, includeFontPadding: false, lineHeight: 25 },
-  bannerText: { color: colors.textInverse, flex: 1, fontFamily: fonts.medium, fontSize: 15, includeFontPadding: false, lineHeight: 15 },
+  bannerText: { color: colors.textInverse, flex: 1, fontFamily: fonts.medium, fontSize: 15, includeFontPadding: false, lineHeight: 18 },
 });

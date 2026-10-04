@@ -16,7 +16,7 @@ export function PammitLogo({ compact = false, testID }: PammitLogoProps) {
         style={compact ? styles.compactImage : styles.image}
       />
       <View style={styles.brand}>
-        <AppText variant={compact ? 'bodyLgBold' : 'display'} style={styles.name}>パミット</AppText>
+        <AppText variant={compact ? 'bodyLgBold' : 'display'} style={[styles.name, !compact && styles.fullName]}>パミット</AppText>
         {!compact && (
           <AppText variant="body" numberOfLines={1} style={styles.tagline}>
             ～ ベテラン農家の経験や感覚を形にするアプリ ～
@@ -33,5 +33,6 @@ const styles = StyleSheet.create({
   compactImage: { height: 88, marginBottom: -20, width: 88 },
   brand: { alignItems: 'center' },
   name: { color: colors.primary, textAlign: 'center' },
+  fullName: { lineHeight: 80 },
   tagline: { color: colors.primary, lineHeight: 15, textAlign: 'center' },
 });

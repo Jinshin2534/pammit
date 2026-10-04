@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
   ViewStyle,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { HeaderBackground } from '@/components/background/header-background';
 import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
+import { Button, Dropdown, DropdownOption, IconButton, TextField } from '@/components/ui';
 import { colors, fonts, radii, strokes } from '@/theme/tokens';
 
 type AdminPageProps = {
@@ -57,18 +57,17 @@ export function AdminHeader({ title, showBack = false, onBack = () => router.bac
 
 export function AdminIconButton({ onPress, direction = 'back' }: { onPress: () => void; direction?: 'back' | 'forward' }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={direction === 'back' ? '戻る' : '次へ'} hitSlop={8} onPress={onPress} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
-      <Image source={require('../../../assets/icons/chevron-left.svg')} style={[styles.backIcon, direction === 'forward' && styles.forwardIcon]} contentFit="fill" accessible={false} />
-    </Pressable>
+    <IconButton
+      accessibilityLabel={direction === 'back' ? '戻る' : '次へ'}
+      icon={<Image source={require('../../../assets/icons/chevron-left.svg')} style={[styles.backIcon, direction === 'forward' && styles.forwardIcon]} contentFit="fill" accessible={false} />}
+      onPress={onPress}
+      style={styles.iconButton}
+    />
   );
 }
 
 export function AdminButton({ label, onPress, variant = 'primary', size = 'md', fullWidth = false }: { label: string; onPress: () => void; variant?: 'primary' | 'cta'; size?: 'md' | 'lg'; fullWidth?: boolean }) {
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.button, variant === 'cta' && styles.ctaButton, size === 'lg' && styles.largeButton, fullWidth && styles.fullWidth, pressed && styles.pressed]}>
-      <Text maxFontSizeMultiplier={1.2} style={styles.buttonText}>{label}</Text>
-    </Pressable>
-  );
+  return <Button label={label} onPress={onPress} variant={variant} size={size} style={fullWidth ? styles.fullWidth : styles.adminButton} />;
 }
 
 export function AdminFlowFooter({ onBack, onNext, nextLabel = '確認する', nextVariant = 'primary', backOnly = false }: { onBack: () => void; onNext?: () => void; nextLabel?: string; nextVariant?: 'primary' | 'cta'; backOnly?: boolean }) {
@@ -83,24 +82,11 @@ export function AdminFlowFooter({ onBack, onNext, nextLabel = '確認する', ne
 }
 
 export function AdminTextField({ label, value, onChangeText }: { label: string; value: string; onChangeText: (value: string) => void }) {
-  return (
-    <View style={styles.fieldGroup}>
-      <Text maxFontSizeMultiplier={1.2} style={styles.bodyLg}>{label}</Text>
-      <TextInput maxFontSizeMultiplier={1.2} value={value} onChangeText={onChangeText} style={styles.textInput} />
-    </View>
-  );
+  return <TextField label={label} value={value} onChangeText={onChangeText} />;
 }
 
-export function AdminDropdown({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
-  return (
-    <View style={styles.fieldGroup}>
-      <Text maxFontSizeMultiplier={1.2} style={styles.bodyLg}>{label}</Text>
-      <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.dropdown, pressed && styles.pressed]}>
-        <Text maxFontSizeMultiplier={1.2} style={styles.bodyLg}>{value}</Text>
-        <Image source={require('../../../assets/images/admin/dropdown-chevron.svg')} style={styles.chevron} contentFit="fill" accessible={false} />
-      </Pressable>
-    </View>
-  );
+export function AdminDropdown({ label, value, options, onChange }: { label: string; value: string; options: readonly DropdownOption[]; onChange: (value: string) => void }) {
+  return <Dropdown label={label} value={[value]} options={options} onChange={(next) => next[0] && onChange(next[0])} />;
 }
 
 export function AdminMenuTile({ label, image, onPress }: { label: string; image: number; onPress: () => void }) {
@@ -142,27 +128,23 @@ const styles = StyleSheet.create({
   body: { flex: 1, minHeight: 0 },
   content: { alignItems: 'center', flex: 1, gap: 20, overflow: 'hidden', paddingBottom: 24, paddingHorizontal: 40, paddingTop: 8 },
   scrollContent: { flexGrow: 1 },
-  header: { alignItems: 'center', justifyContent: 'center', paddingBottom: 24, paddingHorizontal: 40, paddingTop: 40, position: 'relative', width: '100%' },
-  headerCompact: { paddingBottom: 4 },
+  header: { alignItems: 'center', justifyContent: 'center', paddingBottom: 30, paddingHorizontal: 40, paddingTop: 40, position: 'relative', width: '100%' },
+  headerCompact: { paddingBottom: 10 },
   headerBack: { left: 16, position: 'absolute', top: 47 },
   title: { color: colors.text, fontFamily: fonts.medium, fontSize: 35, includeFontPadding: false, lineHeight: 45, textAlign: 'center' },
-  iconButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radii.full, height: 48, justifyContent: 'center', overflow: 'hidden', width: 48 },
+  iconButton: { overflow: 'hidden' },
   backIcon: { height: 59, width: 59 },
   forwardIcon: { transform: [{ rotate: '180deg' }] },
-  button: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radii.full, height: 48, justifyContent: 'center', paddingHorizontal: 24, width: 152 },
-  ctaButton: { backgroundColor: colors.cta },
-  largeButton: { height: 58 },
+  adminButton: { paddingHorizontal: 20 },
   fullWidth: { width: '100%' },
-  buttonText: { color: colors.textInverse, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 25, textAlign: 'center' },
   footer: { paddingBottom: 32, paddingHorizontal: 40, paddingTop: 12, width: '100%' },
   footerRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
   fieldGroup: { alignSelf: 'stretch', gap: 8 },
   bodyLg: { color: colors.text, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 25 },
-  textInput: { alignSelf: 'stretch', backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, color: colors.text, fontFamily: fonts.medium, fontSize: 23, height: 58, includeFontPadding: false, lineHeight: 25, paddingHorizontal: 20, paddingVertical: 0 },
   dropdown: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, flexDirection: 'row', height: 58, justifyContent: 'space-between', paddingHorizontal: 20 },
   chevron: { height: 10, transform: [{ rotate: '180deg' }], width: 14 },
   menuTile: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radii.md, gap: 4, overflow: 'hidden', paddingTop: 8, width: 167 },
   menuLabel: { color: colors.textInverse, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 25 },
-  menuImage: { height: 96, width: 96 },
+  menuImage: { height: 103, width: 103 },
   pressed: { opacity: 0.7 },
 });

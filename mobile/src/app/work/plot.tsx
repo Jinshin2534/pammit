@@ -4,10 +4,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { WorkChoice, WorkFlowFooter, WorkPage, WorkStepHeader } from '@/components/work/figma-work-ui';
 import { spacing } from '@/theme/tokens';
-
-const plots = ['すだち農園', 'ましろん農園', '三番ハウス'] as const;
+import { useAppState } from '@/providers/app-state';
 
 export default function WorkPlotScreen() {
+  const { farms } = useAppState();
   const params = useLocalSearchParams<{ plot?: string; work?: string }>();
   const [plot, setPlot] = useState(params.plot ?? '');
 
@@ -17,7 +17,7 @@ export default function WorkPlotScreen() {
       footer={<WorkFlowFooter onBack={() => router.back()} onNext={() => router.push({ pathname: '/work/type', params: { plot, work: params.work } })} nextDisabled={!plot} />}
       testID="work-plot-screen">
       <View style={styles.options}>
-        {plots.map((name) => <WorkChoice key={name} label={name} selected={plot === name} onPress={() => setPlot(name)} />)}
+        {farms.map(({ id, name }) => <WorkChoice key={id} label={name} selected={plot === name} onPress={() => setPlot(name)} />)}
       </View>
     </WorkPage>
   );

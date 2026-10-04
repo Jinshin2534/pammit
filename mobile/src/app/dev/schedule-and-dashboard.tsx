@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -20,14 +21,14 @@ export default function ScheduleAndDashboardPreview() {
   if (!__DEV__) return <Redirect href="/" />;
 
   return (
-    <PageLayout header={<ScreenHeader title="予定・農園の部品" topPadding={16} />} testID="schedule-dashboard-preview">
+    <PageLayout header={<ScreenHeader title="予定・農園の部品" />} testID="schedule-dashboard-preview">
       <View style={styles.tiles}>
         <MetricTile label="土壌水分" value="35" unit="%" detail="前日より +2%" testID="preview-metric" />
         <MetricTile label="明日の気温" value="28" unit="℃" detail="晴れ" />
       </View>
       <View style={styles.tiles}>
-        <MenuTile title="農園日誌" description="作業記録を見る" icon={<AppText variant="title">本</AppText>} onPress={() => setMessage('農園日誌を押しました')} testID="preview-menu" />
-        <MenuTile title="作業者登録" description="人を追加する" icon={<AppText variant="title">人</AppText>} onPress={() => setMessage('作業者登録を押しました')} />
+        <MenuTile title="農園日誌" icon={<Image accessible={false} contentFit="cover" source={require('../../../assets/images/admin/journal.png')} style={styles.menuImage} />} onPress={() => setMessage('農園日誌を押しました')} testID="preview-menu" />
+        <MenuTile title="作業者登録" icon={<Image accessible={false} contentFit="cover" source={require('../../../assets/images/admin/worker.png')} style={styles.menuImage} />} onPress={() => setMessage('作業者登録を押しました')} />
       </View>
 
       <AppText variant="bodyLgBold">CalendarDay（＋円グラフ、点線は SVG）</AppText>
@@ -51,4 +52,4 @@ export default function ScheduleAndDashboardPreview() {
   );
 }
 
-const styles = StyleSheet.create({ tiles: { flexDirection: 'row', gap: 12 }, calendar: { flexDirection: 'row', flexWrap: 'wrap', gap: 2, justifyContent: 'center' } });
+const styles = StyleSheet.create({ tiles: { flexDirection: 'row', gap: 12 }, calendar: { flexDirection: 'row', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }, menuImage: { height: 96, width: 96 } });

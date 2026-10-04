@@ -28,6 +28,7 @@ export type HomePageProps = {
   onWorkStart: () => void;
   onAi: () => void;
   onSchedule: () => void;
+  onScheduleEdit?: (id: string) => void;
 };
 
 const moreArrow = require('../../../assets/figma/auth-home/home-02.svg');
@@ -46,6 +47,7 @@ export function HomePage({
   onWorkStart,
   onAi,
   onSchedule,
+  onScheduleEdit,
 }: HomePageProps) {
   const orderedSchedules = [...schedules].sort((a, b) => a.start.localeCompare(b.start));
 
@@ -59,6 +61,7 @@ export function HomePage({
         </View>
       }
       footer={footer}
+      scrollable={false}
       testID="home-screen">
       <AppText variant="bodyMd" style={styles.summary}>
         {advice.summary}
@@ -76,7 +79,7 @@ export function HomePage({
 
       <View style={styles.userRow}>
         <View style={styles.userBlock}>
-          <AppText style={styles.userName}>{userName}　さん</AppText>
+          <AppText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.userName}>{userName} さん</AppText>
           <View style={styles.datePill}>
             <View style={styles.dateAccent} />
             <AppText variant="caption" style={styles.dateText}>
@@ -92,7 +95,7 @@ export function HomePage({
           style={({ pressed }) => [styles.settings, pressed && styles.pressed]}
           testID="home-settings">
           <Image source={settingsGear} style={styles.settingsIcon} contentFit="contain" accessible={false} />
-          <AppText variant="bodyLg">設定</AppText>
+          <AppText variant="bodyLg" numberOfLines={1} style={styles.settingsLabel}>設定</AppText>
         </Pressable>
       </View>
 
@@ -107,7 +110,7 @@ export function HomePage({
           style={styles.carousel}
           contentContainerStyle={styles.scheduleRow}>
           {orderedSchedules.map((schedule) => (
-            <View key={schedule.id} style={styles.scheduleCard}>
+            <Pressable key={schedule.id} accessibilityRole="button" onPress={() => onScheduleEdit?.(schedule.id)} style={({ pressed }) => [styles.scheduleCard, pressed && styles.pressed]}>
               <View style={styles.timeRow}>
                 <AppText style={styles.time}>{schedule.start}</AppText>
                 <Image source={timeLine} style={styles.timeLine} contentFit="fill" accessible={false} />
@@ -122,7 +125,7 @@ export function HomePage({
                   <ScheduleDetail label="担当" value={schedule.members.join('・') || '未指定'} />
                 </View>
               </View>
-            </View>
+            </Pressable>
           ))}
           <Pressable onPress={onSchedule} style={({ pressed }) => [styles.addSchedule, pressed && styles.pressed]}>
             <AppText variant="bodyLg" style={styles.addScheduleText}>＋予定を追加</AppText>
@@ -130,7 +133,7 @@ export function HomePage({
         </ScrollView>
       </View>
 
-      <Button label="作業を始める！" size="lg" variant="primary" onPress={onWorkStart} testID="home-start-work" />
+      <Button label="作業を始める！" size="lg" variant="primary" onPress={onWorkStart} style={styles.startButton} testID="home-start-work" />
 
       <View style={styles.shortcuts}>
         <ShortcutButton label="ベテランAI相談" onPress={onAi} testID="home-ai" />
@@ -203,11 +206,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   userBlock: {
+    flex: 1,
     gap: 6,
+    minWidth: 0,
   },
   userName: {
+    flexShrink: 1,
     fontSize: 15,
-    lineHeight: 15,
+    lineHeight: 18,
   },
   datePill: {
     alignItems: 'center',
@@ -231,10 +237,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 4,
+    flexShrink: 0,
+    minWidth: 92,
+    paddingRight: 2,
   },
   settingsIcon: {
     height: 44,
+    transform: [{ scaleX: -1 }],
     width: 44,
+  },
+  settingsLabel: {
+    flexShrink: 0,
+    lineHeight: 25,
   },
   todayCard: {
     alignSelf: 'stretch',
@@ -242,9 +256,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderRadius: radii.md,
     borderWidth: strokes.default,
-    gap: 12,
+    gap: 8,
     overflow: 'hidden',
-    padding: 16,
+    padding: 12,
   },
   todayTitle: {
     lineHeight: 25,
@@ -261,7 +275,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   carousel: {
-    height: 134,
+    height: 112,
     overflow: 'hidden',
   },
   scheduleRow: {
@@ -272,8 +286,8 @@ const styles = StyleSheet.create({
   scheduleCard: {
     backgroundColor: colors.primary,
     borderRadius: radii.md,
-    gap: 12,
-    height: 134,
+    gap: 6,
+    height: 112,
     paddingBottom: 10,
     paddingHorizontal: 11,
     paddingTop: 8,
@@ -293,7 +307,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   scheduleCopy: {
-    gap: 12,
+    gap: 6,
   },
   workName: {
     color: colors.textInverse,
@@ -331,7 +345,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.secondary,
     borderRadius: radii.full,
     flex: 1,
-    height: 58,
+    height: 48,
     justifyContent: 'center',
     minWidth: 0,
     paddingHorizontal: 12,
@@ -341,6 +355,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 15,
     textAlign: 'center',
+  },
+  startButton: {
+    height: 48,
   },
   banner: {
     alignItems: 'center',
