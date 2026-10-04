@@ -1,10 +1,31 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { PageLayout } from '@/components/layout/page-layout';
-import { ScreenHeader } from '@/components/navigation/screen-header';
-import { AppText, Button, Card, SmallButton } from '@/components/ui';
-import { WorkSummary } from '@/components/work';
+import { router } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { WorkBackButton, WorkButton, WorkPage, workTextStyles } from '@/components/work/figma-work-ui';
 
 export default function WorkFinishScreen() {
-  const params = useLocalSearchParams<{ plot?: string; work?: string; hat?: string }>();
-  return <PageLayout variant="centered" header={<ScreenHeader title="終了確認" showBack onBack={() => router.back()} topPadding={16} />} testID="work-finish-screen"><WorkSummary {...params} /><Card title="作業を終了しますか？" body="終了すると作業時間と判定結果が保存されます。" variant="outlined"><Button label="終了する" size="lg" variant="cta" onPress={() => router.replace('/work/insight')} /><SmallButton label="作業を続ける" variant="outline" onPress={() => router.back()} /></Card><AppText variant="caption">通信が切れている場合は端末へ保存し、復旧後に自動送信します。</AppText></PageLayout>;
+  return (
+    <WorkPage
+      backgroundPosition="center"
+      footer={<View style={styles.footer}><WorkBackButton onPress={() => router.back()} /></View>}
+      contentStyle={styles.content}
+      testID="work-finish-screen">
+      <Text maxFontSizeMultiplier={1.2} style={workTextStyles.title}>終了確認</Text>
+      <View style={styles.confirmation}>
+        <View style={styles.copy}>
+          <Text maxFontSizeMultiplier={1.2} style={[workTextStyles.bodyLg, styles.center]}>{'本当に作業を\n終わりますか？'}</Text>
+          <Text maxFontSizeMultiplier={1.2} style={[workTextStyles.body, styles.center]}>切る75 / 残す56 / 判断不可2</Text>
+        </View>
+        <WorkButton label="作業終了" variant="cta" onPress={() => router.replace('/work/insight')} />
+      </View>
+    </WorkPage>
+  );
 }
+
+const styles = StyleSheet.create({
+  content: { justifyContent: 'center' },
+  confirmation: { alignItems: 'center', alignSelf: 'stretch', gap: 37 },
+  copy: { alignSelf: 'stretch', gap: 8 },
+  center: { textAlign: 'center' },
+  footer: { paddingBottom: 32, paddingHorizontal: 40, paddingTop: 12 },
+});
