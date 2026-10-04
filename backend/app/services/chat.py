@@ -9,7 +9,6 @@ from datetime import date, datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.core.errors import api_error
 from app.models import ChatMessage, ChatThread, Plot, Schedule, User, WorkLog, WorkSession
 from app.services import knowledge, llm
@@ -130,7 +129,7 @@ def _ask_llm(db: Session, user: User, thread: ChatThread) -> tuple[str | None, l
     try:
         client = llm.client()
         for _ in range(MAX_TOOL_ROUNDS):
-            res = client.chat.completions.create(model=settings.openai_model, messages=messages, tools=TOOLS)
+            res = client.chat.completions.create(**llm.model_options(), messages=messages, tools=TOOLS)
             msg = res.choices[0].message
             if not msg.tool_calls:
                 return msg.content, tools_used

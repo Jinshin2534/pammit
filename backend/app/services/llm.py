@@ -17,12 +17,20 @@ def client():
     return OpenAI(api_key=settings.openai_api_key, timeout=30)
 
 
+def model_options() -> dict:
+    """呼び出しのたびに付けるモデルの設定。"""
+    options: dict = {"model": settings.openai_model}
+    if settings.openai_reasoning_effort:
+        options["reasoning_effort"] = settings.openai_reasoning_effort
+    return options
+
+
 def complete_json(system: str, user: str) -> dict | None:
     if not available():
         return None
     try:
         res = client().chat.completions.create(
-            model=settings.openai_model,
+            **model_options(),
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
             response_format={"type": "json_object"},
         )

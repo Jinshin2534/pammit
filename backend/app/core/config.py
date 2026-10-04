@@ -29,7 +29,9 @@ class Settings(BaseSettings):
     pin_lock_minutes: int = 15
 
     openai_api_key: str | None = None
-    openai_model: str = "gpt-4.1-mini"
+    openai_model: str = "gpt-6-luna"
+    # luna は Chat Completions で関数を呼ぶとき none にする必要がある。短い応答なので深く考えさせる必要もない
+    openai_reasoning_effort: str | None = "none"
 
     # 「今日の気づき」の音声の置き場所。未設定ならローカルのフォルダに置く（開発・テスト用）
     upload_bucket: str | None = None
