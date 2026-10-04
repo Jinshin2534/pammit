@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { PammitLogo } from '@/components/branding';
 import { PageLayout } from '@/components/layout/page-layout';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { Button, Card } from '@/components/ui';
@@ -18,6 +19,7 @@ export default function RoleScreen() {
       variant="centered"
       header={<ScreenHeader title="役割を選ぶ" topPadding={16} />}
       testID="role-screen">
+      <PammitLogo testID="pammit-logo" />
       <View style={styles.introduction}>
         <Text maxFontSizeMultiplier={1.2} style={styles.question}>
           あなたはどちらですか？
