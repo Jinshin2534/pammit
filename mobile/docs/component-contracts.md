@@ -61,6 +61,17 @@ type CardProps = {
 
 詳細なpropsは各コンポーネントの実装開始前に確定する。
 
+## AppTextと文字スタイル
+
+共通の文字は`src/components/ui/app-text.tsx`から`AppText`を読み込む。`variant`には`display`、`titleLg`、`title`、`bodyLg`、`bodyLgBold`、`bodyMd`、`body`、`bodyBold`、`caption`、`captionBold`、`small`、`numberXl`、`numberLg`を指定できる。
+
+```tsx
+<AppText variant="title">画面タイトル</AppText>
+<AppText variant="body">本文と補足の文章</AppText>
+```
+
+すべてZen Maru Gothicを使い、Androidの余分な上下余白を付けず、文字拡大を1.2倍までに揃える。文字色は既定で`colors.text`。必要な場合は`style`で色や配置だけを上書きする。開発時は`/dev/typography`で全種類を確認できる。
+
 ## ScreenHeader
 
 `src/components/navigation/screen-header.tsx`から読み込む。
