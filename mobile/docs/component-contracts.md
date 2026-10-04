@@ -49,6 +49,14 @@ type TextFieldProps =
       to: string;
       onPress: () => void;
     });
+
+type CardProps = {
+  title?: string;
+  body?: string;
+  children?: ReactNode;
+  variant?: 'outlined' | 'filled' | 'muted';
+  testID?: string;
+};
 ```
 
 詳細なpropsは各コンポーネントの実装開始前に確定する。
