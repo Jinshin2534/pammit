@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
@@ -43,13 +43,15 @@ function Pie({ types, muted = false }: { types: readonly WorkKey[]; muted?: bool
   </Svg>;
 }
 
-function Day({ day, selected, types, onPress }: { day: number; selected: boolean; types: readonly WorkKey[]; onPress: () => void }) {
-  const column = (day + 3) % 7;
+function Day({ day, firstWeekday, selected, types, onPress }: { day: number; firstWeekday: number; selected: boolean; types: readonly WorkKey[]; onPress: () => void }) {
+  const column = (firstWeekday + day - 1) % 7;
   const dayColor = selected ? colors.primary : column === 0 ? colors.sunday : column === 6 ? colors.saturday : colors.textSub;
   return <Pressable onPress={onPress} style={styles.day}>
-    {selected && <View style={styles.selectedDay} />}
-    <View style={styles.dayVisual}><Pie types={types} /></View>
-    <AppText style={[styles.dayNumber, { color: dayColor, fontFamily: selected ? fonts.bold : fonts.medium }]}>{String(day).padStart(2, '0')}</AppText>
+    <View style={styles.dayInner}>
+      {selected && <View style={styles.selectedDay} />}
+      <View style={styles.dayVisual}><Pie types={types} /></View>
+      <AppText style={[styles.dayNumber, { color: dayColor, fontFamily: selected ? fonts.bold : fonts.medium }]}>{String(day).padStart(2, '0')}</AppText>
+    </View>
   </Pressable>;
 }
 
@@ -102,7 +104,7 @@ export default function ScheduleScreen() {
           </View>
           <View style={styles.days}>
             {Array.from({ length: leadingBlankDays }, (_, index) => <View key={'blank-' + index} style={styles.day} />)}
-            {Array.from({ length: daysInMonth }, (_, index) => <Day key={index + 1} day={index + 1} selected={day === index + 1} types={workTypesForDay(index + 1)} onPress={() => setDay(index + 1)} />)}
+            {Array.from({ length: daysInMonth }, (_, index) => <Day key={index + 1} day={index + 1} firstWeekday={leadingBlankDays} selected={day === index + 1} types={workTypesForDay(index + 1)} onPress={() => setDay(index + 1)} />)}
           </View>
           <WorkTypeLegend items={[
             { type: 'thinning', label: '摘果・摘葉' }, { type: 'harvest', label: '収穫' },
@@ -133,26 +135,30 @@ export default function ScheduleScreen() {
   </View>;
 }
 
+// 1週間を7等分して、画面幅に合わせて日付の間隔を広げる
+const DAY_COLUMN = `${100 / 7}%` as const;
+
 const styles = StyleSheet.create({
-  page: { alignSelf: 'center', backgroundColor: colors.surface, flex: 1, maxWidth: 360, width: '100%' },
+  page: { alignSelf: 'center', backgroundColor: colors.surface, flex: 1, maxWidth: Platform.OS === 'web' ? 360 : undefined, width: '100%' },
   safe: { flex: 1, paddingBottom: 10 },
   monthNav: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 4, paddingHorizontal: 12, paddingTop: 16 },
   monthButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radii.full, height: 48, justifyContent: 'center', overflow: 'hidden', width: 48 },
   monthButtonDisabled: { backgroundColor: colors.disabled, opacity: 0.65 },
   monthIcon: { height: 59, width: 59 },
   nextIcon: { height: 59, transform: [{ rotate: '180deg' }], width: 59 },
-  month: { alignItems: 'center', width: 67 },
+  month: { alignItems: 'center', flexShrink: 1, minWidth: 67, paddingHorizontal: 4 },
   monthYear: { fontFamily: fonts.medium, fontSize: 23, lineHeight: 25 },
   monthTitle: { fontFamily: fonts.medium, fontSize: 35, lineHeight: 42 },
   scroller: { flex: 1, minHeight: 0 },
   content: { flexGrow: 1, gap: 12, paddingBottom: 24, paddingLeft: 16 },
   calendar: { gap: 12, paddingRight: 16 },
-  week: { columnGap: 17, flexDirection: 'row' },
-  weekLabel: { color: colors.textSub, textAlign: 'center', width: 31.714 },
+  week: { flexDirection: 'row' },
+  weekLabel: { color: colors.textSub, textAlign: 'center', width: DAY_COLUMN },
   sunday: { color: colors.sunday },
   saturday: { color: colors.saturday },
-  days: { columnGap: 17, flexDirection: 'row', flexWrap: 'wrap', rowGap: 19 },
-  day: { alignItems: 'center', height: 55, position: 'relative', width: 31.714 },
+  days: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 19 },
+  day: { alignItems: 'center', height: 55, width: DAY_COLUMN },
+  dayInner: { alignItems: 'center', height: 55, position: 'relative', width: 31.714 },
   selectedDay: { backgroundColor: colors.primarySoft, borderRadius: radii.md, bottom: -2, left: -4, position: 'absolute', right: -4, top: -2, zIndex: 0 },
   dayVisual: { position: 'relative', zIndex: 1 },
   dayNumber: { fontSize: 23, lineHeight: 25, position: 'relative', textAlign: 'center', zIndex: 1 },

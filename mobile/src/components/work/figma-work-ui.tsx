@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Image } from 'expo-image';
-import { Pressable, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HeaderBackground } from '@/components/background/header-background';
 import { colors, fonts, radii, spacing, strokes } from '@/theme/tokens';
@@ -35,17 +35,25 @@ export function WorkPage({ children, header, footer, backgroundPosition = 'top',
   );
 }
 
+/** Figmaの上余白はステータスバー24を含む。ScreenHeaderと同じく、それより高い分だけ下げる。 */
+export function useStatusBarOffset() {
+  const insets = useSafeAreaInsets();
+  return Math.max(0, insets.top - 24);
+}
+
 export function WorkTitleHeader({ title }: { title: string }) {
+  const topOffset = useStatusBarOffset();
   return (
-    <View style={styles.titleHeader}>
+    <View style={[styles.titleHeader, { paddingTop: 40 + topOffset }]}>
       <Text maxFontSizeMultiplier={1.2} style={styles.title}>{title}</Text>
     </View>
   );
 }
 
 export function WorkStepHeader({ current, title, total = 5 }: { current: number; title: string; total?: number }) {
+  const topOffset = useStatusBarOffset();
   return (
-    <View style={styles.stepHeader}>
+    <View style={[styles.stepHeader, { paddingTop: 40 + topOffset }]}>
       <View style={[styles.steps, total === 5 && styles.stepsFive]}>
         <View style={styles.stepLine} />
         {Array.from({ length: total }, (_, index) => index + 1).map((number) => (
@@ -107,8 +115,9 @@ export function WorkDisplayField({ label, value }: { label: string; value: strin
 }
 
 export function ActiveWorkHeader({ plot, work, compact = false }: { plot: string; work: string; compact?: boolean }) {
+  const topOffset = useStatusBarOffset();
   return (
-    <View style={[styles.activeHeader, compact && styles.activeHeaderCompact]}>
+    <View style={[styles.activeHeader, { paddingTop: (compact ? 16 : 40) + topOffset }]}>
       <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={styles.bodyLg}>{plot}　{work}</Text>
       <Text maxFontSizeMultiplier={1.2} style={styles.display}>作業中</Text>
     </View>
@@ -142,7 +151,7 @@ export const workTextStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  page: { alignSelf: 'center', backgroundColor: colors.surface, flex: 1, maxWidth: 360, width: '100%' },
+  page: { alignSelf: 'center', backgroundColor: colors.surface, flex: 1, maxWidth: Platform.OS === 'web' ? 360 : undefined, width: '100%' },
   safeArea: { flex: 1 },
   body: { flex: 1, minHeight: 0 },
   content: { alignItems: 'center', flexGrow: 1, gap: spacing.gap, overflow: 'hidden', paddingBottom: 24, paddingHorizontal: spacing.pageX, paddingTop: 8 },
@@ -175,7 +184,6 @@ const styles = StyleSheet.create({
   fieldGroup: { alignSelf: 'stretch', gap: 8 },
   field: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, flexDirection: 'row', height: 58, paddingHorizontal: 20 },
   activeHeader: { alignItems: 'center', gap: 4, paddingBottom: 5, paddingTop: 40, width: '100%' },
-  activeHeaderCompact: { paddingTop: 16 },
   display: { color: colors.text, fontFamily: fonts.bold, fontSize: 55, includeFontPadding: false, lineHeight: 67, textAlign: 'center' },
   counts: { alignItems: 'center', flexDirection: 'row', height: 106, justifyContent: 'space-between', width: '100%' },
   countGroup: { alignItems: 'center', flexDirection: 'row', height: '100%' },

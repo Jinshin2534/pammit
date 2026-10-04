@@ -57,23 +57,28 @@ function CalendarDate({ day, month, hasEntry }: { day: number; month: Date; hasE
 
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${month.getMonth() + 1}月${day}日の日誌を見る`} onPress={() => router.push({ pathname: '/admin/journals/day', params: { date: key } })} style={({ pressed }) => [styles.calendarDay, pressed && styles.pressed]}>
-      {isToday ? <View style={styles.selected} /> : null}
-      <View style={[styles.pie, hasEntry ? styles.entryDot : styles.emptyDot]} />
-      <Text maxFontSizeMultiplier={1.2} style={[styles.date, isSunday && styles.sunday, isSaturday && styles.saturday, isToday && styles.today]}>{String(day).padStart(2, '0')}</Text>
+      <View style={styles.dayInner}>
+        {isToday ? <View style={styles.selected} /> : null}
+        <View style={[styles.pie, hasEntry ? styles.entryDot : styles.emptyDot]} />
+        <Text maxFontSizeMultiplier={1.2} style={[styles.date, isSunday && styles.sunday, isSaturday && styles.saturday, isToday && styles.today]}>{String(day).padStart(2, '0')}</Text>
+      </View>
     </Pressable>
   );
 }
 
+const DAY_COLUMN = `${100 / 7}%` as const;
+
 const styles = StyleSheet.create({
   monthNav: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, width: '100%' },
-  monthCopy: { alignItems: 'center', width: 67 },
+  monthCopy: { alignItems: 'center', flexShrink: 1, minWidth: 67, paddingHorizontal: 4 },
   month: { color: colors.text, fontFamily: fonts.medium, fontSize: 35, includeFontPadding: false, lineHeight: 45, textAlign: 'center' },
   content: { alignItems: 'center', gap: 12, paddingBottom: 8, paddingHorizontal: 16, paddingTop: 8 },
   calendar: { alignSelf: 'stretch', gap: 19 },
-  weekdays: { alignItems: 'center', alignSelf: 'center', columnGap: 27, flexDirection: 'row', width: 308 },
-  weekday: { color: colors.textSub, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 25, textAlign: 'center', width: 21 },
-  grid: { flexDirection: 'row', columnGap: 17, rowGap: 19, flexWrap: 'wrap', width: '100%' },
-  calendarDay: { alignItems: 'center', height: 55, position: 'relative', width: 32.286 },
+  weekdays: { alignItems: 'center', flexDirection: 'row', width: '100%' },
+  weekday: { color: colors.textSub, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 25, textAlign: 'center', width: DAY_COLUMN },
+  grid: { flexDirection: 'row', rowGap: 19, flexWrap: 'wrap', width: '100%' },
+  calendarDay: { alignItems: 'center', height: 55, width: DAY_COLUMN },
+  dayInner: { alignItems: 'center', height: 55, position: 'relative', width: 32.286 },
   selected: { backgroundColor: colors.primarySoft, borderRadius: radii.md, bottom: -2, left: -4, position: 'absolute', right: -4, top: -2 },
   pie: { borderRadius: radii.full, height: 31, width: 31 },
   date: { color: colors.textSub, fontFamily: fonts.medium, fontSize: 23, includeFontPadding: false, lineHeight: 25, textAlign: 'center' },

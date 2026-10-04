@@ -13,7 +13,8 @@ export default function JournalDayScreen() {
   const [note, setNote] = useState(existing?.note ?? '');
   const parsed = new Date(`${date}T12:00:00`);
   const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
-  const hasContent = date === '2026-10-10' || Boolean(existing?.note.trim());
+  // 天気・作業などの自動の記録は、備考の有無とは関係なく決まる
+  const hasContent = date === '2026-10-10';
   const updateNote = (value: string) => { setNote(value); saveJournal({ date, note: value }); };
 
   return (

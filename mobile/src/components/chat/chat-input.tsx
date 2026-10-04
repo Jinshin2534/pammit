@@ -15,6 +15,7 @@ export function ChatInput({ value, onChangeText, onSend, onFocus, placeholder = 
       placeholder={placeholder}
       placeholderTextColor={colors.borderMuted}
       returnKeyType="send"
+      submitBehavior="submit"
       style={[styles.input, disabled && styles.disabled]}
       value={value}
       testID={testID}
@@ -22,6 +23,6 @@ export function ChatInput({ value, onChangeText, onSend, onFocus, placeholder = 
   );
 }
 const styles = StyleSheet.create({
-  input: { alignSelf: 'center', backgroundColor: colors.surface, borderColor: colors.text, borderRadius: radii.md, borderWidth: 2, color: colors.text, fontFamily: 'ZenMaruGothic-Medium', fontSize: 15, height: 44, includeFontPadding: false, lineHeight: 15, paddingHorizontal: 20, paddingVertical: 0, width: 328 },
+  input: { alignSelf: 'center', backgroundColor: colors.surface, borderColor: colors.text, borderRadius: radii.md, borderWidth: 2, color: colors.text, fontFamily: 'ZenMaruGothic-Medium', fontSize: 15, height: 44, includeFontPadding: false, lineHeight: 15, paddingHorizontal: 20, paddingVertical: 0, width: '100%' },
   disabled: { backgroundColor: colors.surfaceMuted, color: colors.textSub },
 });

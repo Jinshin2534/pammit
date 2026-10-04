@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { HeaderBackground } from '@/components/background/header-background';
 import { AiAvatar, ChatBubble, ChatInput } from '@/components/chat';
@@ -24,13 +24,21 @@ export default function AiChatScreen() {
   const fromWork = from === 'work';
   const [message, setMessage] = useState('');
   const [showTopics, setShowTopics] = useState(true);
-  const [sentMessage, setSentMessage] = useState<string | null>(null);
+  const [messages, setMessages] = useState<string[]>([]);
   const [mode, setMode] = useState<'chat' | 'history' | 'historyChat'>('chat');
+  const [keyboardShown, setKeyboardShown] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardShown(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardShown(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const sendMessage = (value: string) => {
     const trimmed = value.trim();
     if (!trimmed) return;
-    setSentMessage(trimmed);
+    setMessages((current) => [...current, trimmed]);
     setShowTopics(false);
     setMessage('');
   };
@@ -52,23 +60,29 @@ export default function AiChatScreen() {
           <SmallButton label="過去の会話を見る" variant="soft" onPress={() => setMode('history')} style={styles.historyButton} />
         </View>}
       footer={mode !== 'history' ? <View style={styles.footer}>
-        <ChatInput value={message} onChangeText={setMessage} onFocus={() => !sentMessage && setShowTopics(true)} onSend={send} />
-        <BottomNav role={session.role} activeTab="ai" onTabPress={(tab) => router.navigate(routes[tab])} />
+        <View style={styles.inputRow}><ChatInput value={message} onChangeText={setMessage} onFocus={() => !messages.length && setShowTopics(true)} onSend={send} /></View>
+        {!keyboardShown && <BottomNav role={session.role} activeTab="ai" onTabPress={(tab) => router.navigate(routes[tab])} />}
       </View> : <BottomNav role={session.role} activeTab="ai" onTabPress={(tab) => router.navigate(routes[tab])} />}
       scrollable={false}
       testID="ai-screen">
-      {mode !== 'history' ? <View style={[styles.content, showTopics && styles.contentTopics]}>
+      {mode !== 'history' ? <ScrollView
+        ref={scrollRef}
+        style={styles.chat}
+        contentContainerStyle={[styles.content]}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+        testID="ai-chat-scroll">
         <ChatBubble sender="ai" message={'ごきげんよう！\nここではすだち農業についての様々な質問が行えるよ！'} />
         <Pressable accessibilityRole="button" accessibilityLabel="相談の話題を表示" onPress={() => setShowTopics(true)} style={styles.avatarButton}>
           <AiAvatar />
         </Pressable>
-        {sentMessage && <ChatBubble sender="user" message={sentMessage} />}
+        {messages.map((sent, index) => <ChatBubble key={index} sender="user" message={sent} />)}
         {showTopics && <View style={styles.suggestions}>
           {topics.map((topic) => <SmallButton key={topic} label={topic} onPress={() => sendMessage(topic)} style={styles.topic} />)}
         </View>}
-      </View> : <View style={styles.historyList}>
+      </ScrollView> : <View style={styles.historyList}>
         {histories.map((history) => (
-          <Pressable key={history.id} accessibilityRole="button" onPress={() => { setSentMessage(history.title); setShowTopics(false); setMode('historyChat'); }} style={({ pressed }) => [styles.historyCard, pressed && styles.pressed]}>
+          <Pressable key={history.id} accessibilityRole="button" onPress={() => { setMessages([history.title]); setShowTopics(false); setMode('historyChat'); }} style={({ pressed }) => [styles.historyCard, pressed && styles.pressed]}>
             <AppText variant="bodyBold" numberOfLines={2} style={styles.historyTitle}>{history.title}</AppText>
             <AppText variant="caption" style={styles.historyDate}>{history.date}</AppText>
           </Pressable>
@@ -82,12 +96,13 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center' },
   screenTitle: { fontSize: 32, lineHeight: 39, paddingHorizontal: 16 },
   historyButton: { alignSelf: 'center', marginTop: -16 },
-  content: { flex: 1, justifyContent: 'flex-end', marginBottom: -24, marginTop: -8, paddingBottom: 12, paddingHorizontal: 16 },
-  contentTopics: { gap: 12 },
+  chat: { flex: 1, marginBottom: -24, marginTop: -8 },
+  content: { flexGrow: 1, gap: 12, justifyContent: 'flex-end', paddingBottom: 12, paddingHorizontal: 16 },
   avatarButton: { alignSelf: 'flex-start' },
   suggestions: { gap: 6, paddingHorizontal: 16, width: '100%' },
   topic: { alignSelf: 'stretch', width: '100%' },
   footer: { alignItems: 'center', gap: 12 },
+  inputRow: { paddingHorizontal: 16, width: '100%' },
   historyList: { flex: 1, gap: 12, paddingHorizontal: 16, paddingTop: 8 },
   historyCard: { backgroundColor: '#FFFFFF', borderColor: '#BDF087', borderRadius: 20, borderWidth: 3, gap: 6, paddingHorizontal: 20, paddingVertical: 16 },
   historyTitle: { lineHeight: 20 },

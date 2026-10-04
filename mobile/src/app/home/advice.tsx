@@ -50,7 +50,7 @@ export default function HomeAdviceScreen() {
 
       <View style={styles.summaryCard}>
         <AppText style={styles.cardText}>
-          高温になる前に摘果。身が密集している木から先に着るのがおすすめです。
+          高温になる前に摘果。実が密集している木から先に切るのがおすすめです。
         </AppText>
       </View>
 
@@ -68,9 +68,9 @@ const styles = StyleSheet.create({
     height: 114,
     left: 0,
     position: 'absolute',
+    right: 0,
     top: 258,
     transform: [{ scaleY: -1 }],
-    width: 360,
   },
   title: {
     fontSize: 30,
