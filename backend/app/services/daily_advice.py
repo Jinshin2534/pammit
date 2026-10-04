@@ -19,7 +19,8 @@ SYSTEM = (
     "渡された材料だけを使い、今日の作業についてのひとことを日本語で書きます。"
     "材料にないことは書きません。灌水の量や農薬の名前は断定しません。"
     'JSON で {"summary": "40字以内のひとこと", "body": "200字以内の説明"} を返します。'
-    "body の最後に、最終的な判断は畑の様子と経験者の判断を優先するよう一文添えます。"
+    "body の最後に、最終的な判断は畑の様子と農家さんの判断を優先するよう一文添えます。"
+    "経験のある人を指すときは「農家さん」と呼びます。"
 )
 
 
@@ -60,7 +61,7 @@ def fallback_text(context: dict) -> tuple[str, str]:
     w = context["weather_today"]
     if w and w["weather"]:
         lines.append(f"今日の天気は{w['weather']}、最高気温は{w['temp_max']}℃の予報です。")
-    lines.append("最終的な判断は、畑の様子と経験者の判断を優先してください。")
+    lines.append("最終的な判断は、畑の様子と農家さんの判断を優先してください。")
     return summary, "\n".join(lines)
 
 
