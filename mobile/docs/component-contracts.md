@@ -104,3 +104,34 @@ type CardProps = {
 Safe Areaはこの部品で一度だけ確保する。親でSafeAreaViewを重ねない。下部バーがあるときは、システム操作領域に加えて10の余白を確保する。本文の上余白8、下余白24、部品間隔20。
 
 開発時は`/dev/page-layout`で通常・中央・長い本文・左右余白16を切り替えて確認できる。BottomNav自体は別の部品として実装する。
+
+## BottomNav
+
+`src/components/navigation/bottom-nav.tsx`から読み込む。
+
+```tsx
+const routes = {
+  home: '/(tabs)',
+  schedule: '/(tabs)/schedule',
+  farm: '/(tabs)/farm',
+  ai: '/(tabs)/ai',
+  admin: '/admin',
+} as const;
+
+<BottomNav
+  role="worker"
+  activeTab="home"
+  onTabPress={(tab) => router.navigate(routes[tab])}
+/>
+```
+
+- `role`: 必須。`worker`はホーム・予定・農園・相談の4タブ。`owner`は管理を加えた5タブ。表示制御であり、APIや画面の認可は別途行う。
+- `onTabPress`: 必須。押したタブのキーを返す。画面側でルーティングへ接続する。
+- `activeTab`: 選択中のタブを読み上げに反映する。Figmaの仕様どおり、選択による色の変更は行わない。
+- `testID`: 各タブに末尾`-home`、`-schedule`、`-farm`、`-ai`、`-admin`を付ける。
+
+アイコンはFigmaのSVGを使用。49×49、AIだけ37×49。文字はZen Maru Gothic Mediumの15、Androidで切れないよう行高18、文字拡大は1.2倍まで。タブを等幅に並べ、左右余白8。押下中は不透明度70%。
+
+Safe Areaと下10の余白はPageLayout側で確保する。BottomNav自身では重ねて確保しない。既存のexpo-router標準タブバーへの置き換えは、画面の結合時に行う。
+
+開発時は`/dev/bottom-nav`で4/5タブの切り替えとタブ押下を確認できる。この確認画面では製品画面へ遷移せず、押したタブに応じてタイトルを切り替える。
