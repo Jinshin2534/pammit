@@ -15,6 +15,6 @@ export function PinDot({ filled, testID }: PinDotProps) {
 }
 
 const styles = StyleSheet.create({
-  dot: { backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.full, borderWidth: 3, height: 24, width: 24 },
-  filled: { backgroundColor: colors.primary },
+  dot: { backgroundColor: 'transparent', borderColor: colors.text, borderRadius: radii.full, borderWidth: 3, height: 30, width: 30 },
+  filled: { backgroundColor: colors.text },
 });
