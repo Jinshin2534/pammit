@@ -37,7 +37,7 @@ export default function InsightScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: colors.accent, flex: 1, overflow: 'hidden' },
+  page: { alignSelf: 'center', backgroundColor: colors.accent, flex: 1, maxWidth: 360, overflow: 'hidden', width: '100%' },
   ellipse: { height: 516, left: -84, position: 'absolute', top: 142, width: 530 },
   safeArea: { flex: 1 },
   header: { alignItems: 'center', gap: 19, height: 78, paddingBottom: 8, paddingTop: 40, width: '100%' },

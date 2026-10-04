@@ -142,7 +142,7 @@ export const workTextStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: colors.surface, flex: 1 },
+  page: { alignSelf: 'center', backgroundColor: colors.surface, flex: 1, maxWidth: 360, width: '100%' },
   safeArea: { flex: 1 },
   body: { flex: 1, minHeight: 0 },
   content: { alignItems: 'center', flex: 1, gap: spacing.gap, overflow: 'hidden', paddingBottom: 24, paddingHorizontal: spacing.pageX, paddingTop: 8 },
