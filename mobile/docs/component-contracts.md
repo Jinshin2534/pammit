@@ -135,3 +135,12 @@ const routes = {
 Safe Areaと下10の余白はPageLayout側で確保する。BottomNav自身では重ねて確保しない。既存のexpo-router標準タブバーへの置き換えは、画面の結合時に行う。
 
 開発時は`/dev/bottom-nav`で4/5タブの切り替えとタブ押下を確認できる。この確認画面では製品画面へ遷移せず、押したタブに応じてタイトルを切り替える。
+
+## 6部品の組み合わせ確認
+
+開発時は`/dev/component-integration`で、最初に作った6部品を同じ画面に置いて確認できる。
+
+- PageLayoutの本文だけがスクロールし、ScreenHeaderとBottomNavは固定される。
+- TextFieldへ名前を入力すると、下のCardへ入力内容が表示される。
+- 時間入力欄、Button、ScreenHeaderの戻るボタン、BottomNavを押すと、最上部のCardへ結果が表示される。
+- 製品ビルドではこの確認画面から入口へ戻る。
