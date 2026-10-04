@@ -80,3 +80,27 @@ type CardProps = {
 タイトルは中央寄せ、Zen Maru Gothic Mediumの35。戻るボタンは左16、48×48、押下中は不透明度70%。長いタイトルは折り返し、戻るボタンの領域と重ねない。
 
 開発時は`/dev/screen-header`で、戻るボタンの有無、長いタイトル、押下を確認できる。製品ビルドではこの確認画面から入口へ戻る。
+
+## PageLayout
+
+`src/components/layout/page-layout.tsx`から読み込む。
+
+```tsx
+<PageLayout
+  header={<ScreenHeader title="ホーム" topPadding={16} />}
+  footer={<BottomNav role="worker" onTabPress={handleTabPress} />}>
+  {/* 本文 */}
+</PageLayout>
+```
+
+- `header`、`footer`: スクロールしない上部・下部の部品。どちらも省略可。上部のScreenHeaderには`topPadding={16}`を渡す。
+- `children`: 本文。既定で縦にスクロールできる。
+- `variant`: `standard`（既定）または`centered`。中央配置でも本文が長くなればスクロールできる。
+- `contentPadding`: 本文の左右余白。既定40。カレンダー・農園・AI相談は16。
+- `scrollable`: 既定`true`。本文がFlatListや独自のスクロールを持つ場合は`false`にして、縦スクロールを二重にしない。
+- `background`: 画面全体の後ろに配置する装飾。Safe Areaの外にも広がり、タップを遮らない。HeaderBackgroundなどを呼び出し側から渡す。
+- `testID`: 本文は末尾`-body`、下部領域は末尾`-footer`。
+
+Safe Areaはこの部品で一度だけ確保する。親でSafeAreaViewを重ねない。下部バーがあるときは、システム操作領域に加えて10の余白を確保する。本文の上余白8、下余白24、部品間隔20。
+
+開発時は`/dev/page-layout`で通常・中央・長い本文・左右余白16を切り替えて確認できる。BottomNav自体は別の部品として実装する。
