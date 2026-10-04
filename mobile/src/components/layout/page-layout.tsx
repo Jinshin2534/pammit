@@ -51,7 +51,7 @@ export function PageLayout({
         <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
           <KeyboardAvoidingView
             style={styles.safeArea}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            behavior="padding">
             {header != null && <View style={styles.fixed}>{header}</View>}
             {scrollable ? (
               <ScrollView

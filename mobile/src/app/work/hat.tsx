@@ -8,6 +8,8 @@ import { colors, spacing } from '@/theme/tokens';
 
 export default function HatConnectionScreen() {
   const params = useLocalSearchParams<{ plot?: string; work?: string; member?: string }>();
+  const [withHat, setWithHat] = useState(true);
+  const [connected, setConnected] = useState(false);
   const [testComplete, setTestComplete] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -25,12 +27,20 @@ export default function HatConnectionScreen() {
   return (
     <WorkPage
       header={<WorkStepHeader current={4} title="帽子を接続してください" />}
-      footer={<WorkFlowFooter status="接続済み" onBack={() => router.back()} onNext={() => router.push({ pathname: '/work/confirm', params: { ...params, hat: '使用する' } })} />}
+      footer={<WorkFlowFooter
+        status={!withHat ? '帽子なしで作業します' : connected ? '接続済み' : '未接続'}
+        onBack={() => router.back()}
+        onNext={() => router.push({ pathname: '/work/confirm', params: { ...params, hat: withHat ? '使用する' : '使用しない' } })}
+        nextDisabled={withHat && !connected}
+      />}
       testID="work-hat-screen">
       <View style={styles.devices}>
-        {['カメラ', 'マイク', 'スピーカー'].map((name) => <WorkChoice key={name} label={name} selected />)}
+        {['カメラ', 'マイク', 'スピーカー'].map((name) => <WorkChoice key={name} label={name} selected={withHat && connected} />)}
       </View>
-      <WorkButton label="音声をテスト" onPress={testVoice} />
+      {withHat
+        ? <WorkButton label={connected ? '音声をテスト' : '接続する'} onPress={connected ? testVoice : () => setConnected(true)} />
+        : null}
+      <WorkChoice label="帽子なしで作業する" selected={!withHat} onPress={() => setWithHat((value) => !value)} />
       {testComplete ? <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={1.2} style={styles.testStatus}>音声テストを実行しました</Text> : null}
     </WorkPage>
   );

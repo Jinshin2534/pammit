@@ -1,4 +1,4 @@
-"""園地（画面上の「農園」）と作業の種類。"""
+"""農地と作業の種類。"""
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field

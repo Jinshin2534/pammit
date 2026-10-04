@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
 import { HeaderBackground } from '@/components/background/header-background';
 import { PageLayout } from '@/components/layout/page-layout';
@@ -34,6 +34,8 @@ export default function NewScheduleScreen() {
   const [work, setWork] = useState(existing?.work ?? (farmSuggestion ? '土の状態を確認' : '収穫'));
   const [members, setMembers] = useState<string[]>(existing?.members.length ? [...existing.members] : ['長谷川']);
   const [note, setNote] = useState(existing?.note ?? '（なし）');
+  const start = existing?.start ?? '08:00';
+  const end = existing?.end ?? '17:00';
   const parsedDate = new Date(`${date}T12:00:00`);
   const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -47,8 +49,8 @@ export default function NewScheduleScreen() {
     saveSchedule({
       id,
       date,
-      start: existing?.start ?? '08:00',
-      end: existing?.end ?? '17:00',
+      start,
+      end,
       work,
       workType,
       place: plot,
@@ -66,9 +68,9 @@ export default function NewScheduleScreen() {
     <AppText variant="bodyLgBold">{parsedDate.getMonth() + 1}月{parsedDate.getDate()}日（{weekdays[parsedDate.getDay()]}）</AppText>
     <View style={styles.fieldGroup}>
       <AppText variant="bodyLg">時間</AppText>
-      <Pressable accessibilityRole="button" style={styles.field}>
-        <AppText variant="bodyLg">08:00</AppText><AppText variant="bodyLg">〜</AppText><AppText variant="bodyLg">17:00</AppText>
-      </Pressable>
+      <View accessibilityLabel={`${start}から${end}`} style={styles.field}>
+        <AppText variant="bodyLg">{start}</AppText><AppText variant="bodyLg">〜</AppText><AppText variant="bodyLg">{end}</AppText>
+      </View>
     </View>
     <Dropdown label="農園" options={plotOptions} value={[plot]} onChange={(next) => setPlot(next[0])} testID="schedule-plot" />
     <Dropdown label="作業" options={workOptions} value={[workType]} onChange={selectWork} testID="schedule-work" />

@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     upload_bucket: str | None = None
     local_upload_dir: str = "./uploads"
 
-    # 園地に緯度経度がないときに天気予報で使う位置（神山町役場付近）
+    # 農地に緯度経度がないときに天気予報で使う位置（神山町役場付近）
     default_latitude: float = 33.967
     default_longitude: float = 134.350
     # 毎朝の処理（天気の取り込み、今日のひとことの生成）を始める時刻（日本時間）

@@ -5,8 +5,6 @@ import { SettingsFrame } from '@/components/settings/settings-frame';
 import { AppText } from '@/components/ui';
 import { colors, radii } from '@/theme/tokens';
 
-const BAR_WIDTH = 164;
-
 export default function VolumeScreen() {
   const [volume, setVolume] = useState(65);
   const [saved, setSaved] = useState(false);
@@ -22,7 +20,7 @@ export default function VolumeScreen() {
       <View style={styles.slider}>
         <ControlButton kind="minus" onPress={() => setVolume((value) => Math.max(0, value - 10))} />
         <View style={styles.bar} accessibilityLabel={`音量${volume}パーセント`}>
-          <View style={[styles.barFill, { width: Math.round(BAR_WIDTH * volume / 100) }]} />
+          <View style={[styles.barFill, { width: `${volume}%` }]} />
         </View>
         <ControlButton kind="plus" onPress={() => setVolume((value) => Math.min(100, value + 10))} />
       </View>

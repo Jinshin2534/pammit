@@ -77,7 +77,7 @@ class IngestTests(unittest.TestCase):
         cls.client = TestClient(app)
 
     def new_plot(self) -> int:
-        """センサーを置く園地を作り、その園地の値を読めるようにログインしておく。"""
+        """センサーを置く農地を作り、その農地の値を読めるようにログインしておく。"""
         farm = make_farm()
         self.headers = login(self.client, farm, farm.worker_id)
         return farm.plot_ids[0]

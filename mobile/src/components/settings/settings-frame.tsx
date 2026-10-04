@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HeaderBackground } from '@/components/background/header-background';
 import { PageLayout } from '@/components/layout/page-layout';
@@ -21,17 +22,18 @@ const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/far
 export type SettingsFrameProps = {
   children: ReactNode;
   onSave?: () => void;
+  saveDisabled?: boolean;
   saved?: boolean;
   contentStyle?: ViewStyle;
   testID: string;
 };
 
-export function SettingsFrame({ children, onSave, saved = false, contentStyle, testID }: SettingsFrameProps) {
+export function SettingsFrame({ children, onSave, saveDisabled = false, saved = false, contentStyle, testID }: SettingsFrameProps) {
   return (
     <PageLayout
       background={<HeaderBackground position="center" />}
       header={<SettingsTopBar />}
-      footer={<SettingsFooter onSave={onSave} saved={saved} />}
+      footer={<SettingsFooter onSave={onSave} saveDisabled={saveDisabled} saved={saved} />}
       variant="centered"
       scrollable={false}
       testID={testID}>
@@ -41,8 +43,10 @@ export function SettingsFrame({ children, onSave, saved = false, contentStyle, t
 }
 
 function SettingsTopBar() {
+  // ScreenHeaderと同じく、ステータスバーが24より高い分だけ下げる
+  const topOffset = Math.max(0, useSafeAreaInsets().top - 24);
   return (
-    <View style={styles.topBar}>
+    <View style={[styles.topBar, { height: 91 + topOffset, paddingTop: 40 + topOffset }]}>
       <Pressable
         accessibilityLabel="前の画面に戻る"
         accessibilityRole="button"
@@ -59,12 +63,12 @@ function SettingsTopBar() {
   );
 }
 
-function SettingsFooter({ onSave, saved }: Pick<SettingsFrameProps, 'onSave' | 'saved'>) {
+function SettingsFooter({ onSave, saveDisabled, saved }: Pick<SettingsFrameProps, 'onSave' | 'saveDisabled' | 'saved'>) {
   const { session } = useAppState();
   return (
     <View style={[styles.footer, onSave && styles.footerWithSave]}>
       {onSave && (
-        <Button label="保存" variant="cta" size="md" onPress={onSave} style={styles.saveButton} testID="settings-save" />
+        <Button label="保存" variant="cta" size="md" disabled={saveDisabled} onPress={onSave} style={styles.saveButton} testID="settings-save" />
       )}
       <BottomNav role={session.role} onTabPress={(tab) => router.navigate(routes[tab])} testID="settings-bottom-nav" />
       {saved && (
@@ -119,7 +123,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: radii.full,
     justifyContent: 'center',
-    left: 111,
     minHeight: 49,
     paddingHorizontal: 24,
     paddingVertical: 12,

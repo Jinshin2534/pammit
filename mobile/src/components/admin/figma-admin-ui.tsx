@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -122,7 +123,7 @@ export const adminTextStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  page: { alignSelf: 'center', backgroundColor: colors.surface, flex: 1, maxWidth: 360, width: '100%' },
+  page: { alignSelf: 'center', backgroundColor: colors.surface, flex: 1, maxWidth: Platform.OS === 'web' ? 360 : undefined, width: '100%' },
   pageWithNav: { paddingBottom: 10 },
   safeArea: { flex: 1 },
   body: { flex: 1, minHeight: 0 },
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
   iconButton: { overflow: 'hidden' },
   backIcon: { height: 59, width: 59 },
   forwardIcon: { transform: [{ rotate: '180deg' }] },
-  adminButton: { paddingHorizontal: 20 },
+  adminButton: { minWidth: 152, paddingHorizontal: 20, width: 'auto' },
   fullWidth: { width: '100%' },
   footer: { paddingBottom: 32, paddingHorizontal: 40, paddingTop: 12, width: '100%' },
   footerRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', width: '100%' },

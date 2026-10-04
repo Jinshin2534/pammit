@@ -48,7 +48,7 @@ class FieldApiTests(unittest.TestCase):
         cls.client = TestClient(app)
 
     def setup_drying_plot(self):
-        """24時間で 50% → 32% まで乾いている園地。明日の朝には目安（28%）を下回る。"""
+        """24時間で 50% → 32% まで乾いている農地。明日の朝には目安（28%）を下回る。"""
         farm = make_farm()
         plot_id = farm.plot_ids[0]
         with SessionLocal() as db:

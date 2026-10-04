@@ -25,7 +25,7 @@ from app.db import Base, UTCDateTime
 
 
 class SensorDevice(Base):
-    """センサー端末。園地に紐づく。
+    """センサー端末。農地に紐づく。
 
     Wi-Fi 直結は `key_hash`、LoRaWAN は `dev_eui` で端末を特定する。
     キーは平文で保存しない（DB が漏れても送信を偽装されないようにするため）。
@@ -94,7 +94,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
 
 
-# --- 園地 ---
+# --- 農地 ---
 
 
 class Plot(Base):
@@ -204,7 +204,7 @@ class WorkLog(Base):
 
 
 class IrrigationSettings(Base):
-    """灌水の助言で使う園地ごとの目安。行がなければ既定値を使う。"""
+    """灌水の助言で使う農地ごとの目安。行がなければ既定値を使う。"""
 
     __tablename__ = "irrigation_settings"
 

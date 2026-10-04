@@ -28,6 +28,7 @@ export default function ProfileScreen() {
   return (
     <SettingsFrame
       onSave={() => { updateCurrentProfile({ name, avatarId: avatar.id }); setSaved(true); }}
+      saveDisabled={!name.trim()}
       saved={saved}
       testID="profile-screen">
       <AppText variant="title" style={styles.title}>プロフィール</AppText>

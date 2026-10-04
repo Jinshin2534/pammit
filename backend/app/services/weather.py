@@ -50,7 +50,7 @@ def fetch_daily(latitude: float, longitude: float) -> list[dict]:
 
 
 def refresh_forecasts(db: Session, fetch: Callable[[float, float], list[dict]] = fetch_daily) -> int:
-    """全園地の予報を取り込み直し、取り込んだ日数を返す。取れなかった園地は前回の値を残す。"""
+    """全農地の予報を取り込み直し、取り込んだ日数を返す。取れなかった農地は前回の値を残す。"""
     count = 0
     now = datetime.now(timezone.utc)
     for plot in db.scalars(select(Plot)):
