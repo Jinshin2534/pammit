@@ -12,9 +12,13 @@ export const colors = {
   text: '#000000',
   textSub: '#69695D',
   textInverse: '#FFFFFF',
+  textDeep: '#293728',
+  textMutedGreen: '#4F5D49',
   link: '#477C27',
+  sunday: '#D70000',
+  saturday: '#007FED',
+  borderMuted: '#929292',
   glow: '#FFC64C',
-  error: '#B3261E',
 } as const;
 
 export const radii = {
@@ -37,12 +41,12 @@ export const fonts = {
 } as const;
 
 export const workTypeColors = {
-  剪定: '#EB83E2',
-  灌水: '#59B7E0',
-  肥料: '#DAA62C',
-  '摘果・摘葉': '#6EBF3F',
-  収穫: '#FD964F',
-  防除: '#AD61E8',
-  草刈り: '#D9D9D9',
-  その他: '#C22A56',
+  prune: '#EB83E2',
+  irrigate: '#59B7E0',
+  fertilize: '#DAA62C',
+  thinning: '#6EBF3F',
+  harvest: '#FD964F',
+  spray: '#AD61E8',
+  mow: '#D9D9D9',
+  other: '#C22A56',
 } as const;

@@ -143,10 +143,10 @@ const styles = StyleSheet.create({
     borderColor: colors.disabled,
   },
   errorField: {
-    borderColor: colors.error,
+    borderColor: colors.cta,
   },
   errorText: {
-    color: colors.error,
+    color: colors.cta,
     fontFamily: fonts.medium,
     fontSize: 15,
     includeFontPadding: false,
