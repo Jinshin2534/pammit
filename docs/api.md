@@ -71,7 +71,7 @@
 | GET | `/chat/threads` | 過去の会話の一覧（`?session_id=` で作業中の会話だけ） | 実装済み |
 | POST | `/chat/threads` | 会話を始める（作業中なら `session_id` を付ける） | 実装済み |
 | GET | `/chat/threads/{id}/messages` | 会話の内容 | 実装済み |
-| POST | `/chat/threads/{id}/messages` | 質問を送り、回答を受け取る | 実装済み |
+| POST | `/chat/threads/{id}/messages` | 質問を送り、回答を受け取る。`mode: "voice"` で読み上げ向けの短い答え | 実装済み |
 | GET | `/knowledge` | 相談に使う知識の一覧（owner） | 実装済み |
 | POST | `/knowledge` | 知識の登録（owner） | 実装済み |
 

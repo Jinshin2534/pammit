@@ -71,6 +71,7 @@ def list_messages(thread_id: int, user: User = Depends(current_user), db: Sessio
     summary="質問して回答を受け取る",
     description=(
         "AI が質問に応じて、知識・農園の状態・予定・作業の記録を調べて答える。数秒かかる。\n\n"
+        "`mode` を `voice` にすると、読み上げ向けに2〜3文の短い答えにする。\n\n"
         "AI を使えないときは 503 `ai_unavailable` を返し、質問も保存しない。"
     ),
 )
@@ -80,7 +81,7 @@ def post_message(
     t = _own_thread(db, thread_id, user)
     if t.title == "新しい相談":
         t.title = body.content[:30]
-    return _message(chat.answer(db, user, t, body.content))
+    return _message(chat.answer(db, user, t, body.content, voice=body.mode == "voice"))
 
 
 @router.get("/knowledge", response_model=list[KnowledgeOut], summary="登録済みの知識の一覧（管理者）")

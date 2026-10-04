@@ -1,6 +1,8 @@
 """AI 相談と知識。"""
 from datetime import datetime
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -19,6 +21,8 @@ class Thread(BaseModel):
 
 class MessageIn(BaseModel):
     content: str = Field(min_length=1, max_length=2000)
+    mode: Literal["text", "voice"] = Field(
+        default="text", description="voice にすると、読み上げ向けに2〜3文の短い答えにする（作業中の音声での相談）")
 
 
 class Message(BaseModel):
