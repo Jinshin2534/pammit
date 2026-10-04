@@ -26,6 +26,7 @@ type CommonPressableProps = {
 type ButtonProps = CommonPressableProps & {
   label: string;
   variant?: 'primary' | 'cta' | 'secondary';
+  size?: 'md' | 'lg';
 };
 
 type TextFieldProps = {

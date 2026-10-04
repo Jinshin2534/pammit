@@ -10,6 +10,7 @@ export const colors = {
   surfaceMuted: '#F6F6F6',
   text: '#000000',
   textSub: '#69695D',
+  textInverse: '#FFFFFF',
   link: '#477C27',
   glow: '#FFC64C',
   error: '#B3261E',
