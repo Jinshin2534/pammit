@@ -29,13 +29,26 @@ type ButtonProps = CommonPressableProps & {
   size?: 'md' | 'lg';
 };
 
-type TextFieldProps = {
+type TextFieldBaseProps = {
   label: string;
-  value: string;
-  onChangeText: (value: string) => void;
   error?: string;
   disabled?: boolean;
+  testID?: string;
 };
+
+type TextFieldProps =
+  | (TextFieldBaseProps & {
+      type?: 'text';
+      value: string;
+      onChangeText: (value: string) => void;
+      placeholder?: string;
+    })
+  | (TextFieldBaseProps & {
+      type: 'time-range';
+      from: string;
+      to: string;
+      onPress: () => void;
+    });
 ```
 
 詳細なpropsは各コンポーネントの実装開始前に確定する。
