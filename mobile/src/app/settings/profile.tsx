@@ -1,15 +1,65 @@
-import { router } from 'expo-router';
+import { Image } from 'expo-image';
 import { useState } from 'react';
-import { Toast } from '@/components/feedback';
-import { FlowFooter } from '@/components/flow';
-import { PageLayout } from '@/components/layout/page-layout';
-import { ScreenHeader } from '@/components/navigation/screen-header';
-import { Dropdown, TextField } from '@/components/ui';
+import { StyleSheet, View } from 'react-native';
+
+import { SettingsFrame } from '@/components/settings/settings-frame';
+import { AppText, Button, TextField } from '@/components/ui';
+import { colors } from '@/theme/tokens';
+
+const mascot = require('../../../assets/figma/settings/mascot-2.png');
 
 export default function ProfileScreen() {
-  const [name, setName] = useState('確認ユーザー');
-  const [role, setRole] = useState<string[]>(['worker']);
-  const [saved, setSaved] = useState(false);
-  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
-  return <PageLayout header={<ScreenHeader title="プロフィール" showBack onBack={() => router.back()} topPadding={16} />} footer={<FlowFooter nextLabel="保存" onBack={() => router.back()} onNext={save} nextDisabled={!name.trim()} />} testID="profile-screen"><TextField label="名前" value={name} onChangeText={setName} /><Dropdown label="役割" options={[{ label: '師匠農家さん', value: 'owner' }, { label: '後継者・アルバイト', value: 'worker' }]} value={role} onChange={setRole} /><TextField label="農園コード" value="kamiyama-01" onChangeText={() => undefined} disabled /><Toast visible={saved} message="プロフィールを保存しました" /></PageLayout>;
+  const [name, setName] = useState('巣立 好喜子');
+
+  return (
+    <SettingsFrame testID="profile-screen">
+      <AppText variant="title" style={styles.title}>プロフィール</AppText>
+      <TextField label="名前" value={name} onChangeText={setName} testID="profile-name" />
+      <View style={styles.iconField}>
+        <AppText variant="bodyLg" style={styles.iconLabel}>アイコン</AppText>
+        <View style={styles.iconFrame}>
+          <View style={styles.iconInset} />
+          <Image source={mascot} style={styles.mascot} contentFit="fill" accessible={false} />
+        </View>
+        <Button label="変更する" variant="primary" size="md" onPress={() => undefined} testID="profile-change-icon" />
+      </View>
+    </SettingsFrame>
+  );
 }
+
+const styles = StyleSheet.create({
+  title: {
+    lineHeight: 51,
+    textAlign: 'center',
+  },
+  iconField: {
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    gap: 8,
+  },
+  iconLabel: {
+    alignSelf: 'stretch',
+    lineHeight: 25,
+  },
+  iconFrame: {
+    backgroundColor: colors.primary,
+    height: 162,
+    position: 'relative',
+    width: 229,
+  },
+  iconInset: {
+    backgroundColor: colors.surfaceMuted,
+    height: 146,
+    left: 9,
+    position: 'absolute',
+    top: 8,
+    width: 211,
+  },
+  mascot: {
+    height: 125,
+    left: 19,
+    position: 'absolute',
+    top: 18,
+    width: 185,
+  },
+});
