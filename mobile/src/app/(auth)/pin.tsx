@@ -43,9 +43,11 @@ export default function PinScreen() {
       header={<ScreenHeader title="PINを入力" />}
       scrollable={false}
       testID="pin-screen">
-      <AppText variant="bodyLg" numberOfLines={1} style={styles.welcome}>
-        {`ようこそ${userName}さん`}
-      </AppText>
+      <View style={styles.welcomeSlot}>
+        <AppText variant="bodyLg" numberOfLines={1} style={styles.welcome}>
+          {`ようこそ${userName}さん`}
+        </AppText>
+      </View>
 
       <View accessibilityLabel={`PINを${pin.length}文字入力済み`} style={styles.dots}>
         {Array.from({ length: 4 }, (_, index) => (
@@ -97,11 +99,19 @@ export default function PinScreen() {
 }
 
 const styles = StyleSheet.create({
-  welcome: {
-    lineHeight: 25,
-    marginHorizontal: -20,
+  welcomeSlot: {
+    alignSelf: 'stretch',
+    height: 25,
     marginTop: 8,
+    position: 'relative',
+  },
+  welcome: {
+    left: -20,
+    lineHeight: 25,
+    maxWidth: 320,
+    position: 'absolute',
     textAlign: 'center',
+    width: 320,
   },
   dots: {
     alignSelf: 'center',
