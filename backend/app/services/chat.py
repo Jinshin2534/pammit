@@ -26,7 +26,15 @@ SYSTEM = """あなたは、すだち農家のベテランの知識をもとに�
 - 出典や資料名は書かない
 - 農薬の名前や量、灌水の量は断定しない。最終的な判断は畑の様子を見て、農家さんに確かめるよう伝える
 - 経験のある人を指すときは「農家さん」と呼ぶ（「経験者」「ベテラン」とは言わない）
-- 分からないときは分からないと答える"""
+- 分からないときは分からないと答える
+- 画面にはそのまま文字で出すので、強調の記号（** など）や見出しの記号を使わない
+- 写真や画像は受け取れない。見ないと判断できないときは、その場で農家さんに見てもらうよう伝える"""
+
+# 作業中の音声での相談では、答えを帽子から読み上げる。長いと待ち時間も聞く時間も延びる
+VOICE_STYLE = """この答えは音声で読み上げます。
+- 2〜3文、全部で100字くらいまでにする
+- 箇条書き・見出し・記号・絵文字・括弧書き・URL を使わない
+- 結論から言う。詳しく知りたければ画面の AI 相談で聞けると添えてもよい"""
 
 TOOLS = [
     {"type": "function", "function": {
@@ -101,12 +109,12 @@ def _context_lines(db: Session, user: User, thread: ChatThread) -> str:
     return "\n".join(lines)
 
 
-def answer(db: Session, user: User, thread: ChatThread, question: str) -> ChatMessage:
+def answer(db: Session, user: User, thread: ChatThread, question: str, voice: bool = False) -> ChatMessage:
     """質問を保存し、回答を作って保存する。"""
     now = datetime.now(timezone.utc)
     db.add(ChatMessage(thread_id=thread.id, role="user", content=question, tools_used=[], created_at=now))
     db.flush()
-    content, tools_used = _ask_llm(db, user, thread)
+    content, tools_used = _ask_llm(db, user, thread, voice)
     if content is None:
         db.rollback()  # 答えられなかった質問は残さない
         api_error(503, "ai_unavailable", "AI 相談は今使えません。しばらくしてからもう一度試してください")
@@ -118,13 +126,14 @@ def answer(db: Session, user: User, thread: ChatThread, question: str) -> ChatMe
     return reply
 
 
-def _ask_llm(db: Session, user: User, thread: ChatThread) -> tuple[str | None, list[str]]:
+def _ask_llm(db: Session, user: User, thread: ChatThread, voice: bool) -> tuple[str | None, list[str]]:
     if not llm.available():
         return None, []
     history = list(db.scalars(
         select(ChatMessage).where(ChatMessage.thread_id == thread.id)
         .order_by(ChatMessage.id.desc()).limit(HISTORY_MESSAGES)))[::-1]
-    messages: list[dict] = [{"role": "system", "content": SYSTEM + "\n\n" + _context_lines(db, user, thread)}]
+    system = SYSTEM + "\n\n" + _context_lines(db, user, thread) + ("\n\n" + VOICE_STYLE if voice else "")
+    messages: list[dict] = [{"role": "system", "content": system}]
     messages += [{"role": m.role, "content": m.content} for m in history]
     tools_used: list[str] = []
     try:

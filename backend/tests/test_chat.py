@@ -92,6 +92,19 @@ class ChatTests(unittest.TestCase):
         self.assertEqual(tool_result["role"], "tool")
         self.assertIn("小さい実", tool_result["content"])
 
+    def test_voice_mode_asks_for_short_spoken_answer(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        thread = self.client.post("/api/v1/chat/threads", headers=headers, json={}).json()
+        for mode in ("voice", "text"):
+            fake = FakeOpenAI()
+            with mock.patch.object(chat.llm, "available", return_value=True), \
+                    mock.patch.object(chat.llm, "client", return_value=fake):
+                self.client.post(f"/api/v1/chat/threads/{thread['id']}/messages", headers=headers,
+                                 json={"content": "混んでいるときは？", "mode": mode})
+            system = fake.calls[0]["messages"][0]["content"]
+            self.assertEqual("音声で読み上げます" in system, mode == "voice")
+
     def test_threads_are_private(self) -> None:
         farm = make_farm()
         worker, owner = login(self.client, farm, farm.worker_id), login(self.client, farm, farm.owner_id)
