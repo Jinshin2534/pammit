@@ -1,6 +1,7 @@
 """OpenAI の呼び出し。キーがない・失敗したときは None を返し、呼び出し側が代わりの文を使う。"""
 import json
 import logging
+from functools import lru_cache
 
 from app.core.config import settings
 
@@ -11,7 +12,9 @@ def available() -> bool:
     return bool(settings.openai_api_key)
 
 
+@lru_cache(maxsize=1)
 def client():
+    """接続を使い回すため、1つだけ作って持っておく（毎回作ると、つなぎ直しで約1秒かかる）。"""
     from openai import OpenAI
 
     return OpenAI(api_key=settings.openai_api_key, timeout=30)

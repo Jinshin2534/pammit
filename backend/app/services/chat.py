@@ -30,11 +30,13 @@ SYSTEM = """あなたは、すだち農家のベテランの知識をもとに�
 - 画面にはそのまま文字で出すので、強調の記号（** など）や見出しの記号を使わない
 - 写真や画像は受け取れない。見ないと判断できないときは、その場で農家さんに見てもらうよう伝える"""
 
-# 作業中の音声での相談では、答えを帽子から読み上げる。長いと待ち時間も聞く時間も延びる
+# 作業中の音声での相談では、答えを帽子から読み上げる。長いと待ち時間も聞く時間も延びる。
+# 速さを優先して関数は使わず、よく聞かれる情報をサーバーが先に集めて渡す（AI への問い合わせが1回で済む）
 VOICE_STYLE = """この答えは音声で読み上げます。
 - 2〜3文、全部で100字くらいまでにする
 - 箇条書き・見出し・記号・絵文字・括弧書き・URL を使わない
-- 結論から言う。詳しく知りたければ画面の AI 相談で聞けると添えてもよい"""
+- 結論から言う
+- 下の「調べ済みの情報」だけを使って答える。そこにないこと（先週の記録など）は推測せず、画面の AI 相談で聞くよう伝える"""
 
 TOOLS = [
     {"type": "function", "function": {
@@ -109,6 +111,27 @@ def _context_lines(db: Session, user: User, thread: ChatThread) -> str:
     return "\n".join(lines)
 
 
+def _voice_facts(db: Session, user: User, thread: ChatThread, question: str) -> dict:
+    """音声の相談で先に渡す情報。今いる農園・今日と明日の予定・今日の作業・質問に近い知識。"""
+    today = datetime.now(JST).date()
+    session = db.get(WorkSession, thread.session_id) if thread.session_id else None
+    plots = [session.plot] if session else _plots(db, user.farm_id, None)
+    fields = []
+    for p in plots[:5]:
+        f = field_summary(db, p)
+        fields.append({"plot": f["plot_name"], "soil_moisture_pct": f["soil_moisture_pct"],
+                       "soil_change_24h": f["soil_change_24h"], "soil_forecast_tomorrow": f["soil_forecast_tomorrow"],
+                       "tomorrow_weather": f["tomorrow"], "advice": f["advice"]["message"]})
+    tomorrow = today + timedelta(days=1)
+    return {
+        "fields": fields,
+        "schedules_today_and_tomorrow": run_tool(
+            db, user, "get_schedules", {"from_date": today.isoformat(), "to_date": tomorrow.isoformat()}),
+        "work_today": run_tool(db, user, "get_work_history", {"days": 0}),
+        "knowledge": knowledge.search(db, user.farm_id, question, limit=3),
+    }
+
+
 def answer(db: Session, user: User, thread: ChatThread, question: str, voice: bool = False) -> ChatMessage:
     """質問を保存し、回答を作って保存する。"""
     now = datetime.now(timezone.utc)
@@ -132,12 +155,18 @@ def _ask_llm(db: Session, user: User, thread: ChatThread, voice: bool) -> tuple[
     history = list(db.scalars(
         select(ChatMessage).where(ChatMessage.thread_id == thread.id)
         .order_by(ChatMessage.id.desc()).limit(HISTORY_MESSAGES)))[::-1]
-    system = SYSTEM + "\n\n" + _context_lines(db, user, thread) + ("\n\n" + VOICE_STYLE if voice else "")
+    system = SYSTEM + "\n\n" + _context_lines(db, user, thread)
+    if voice:
+        facts = json.dumps(_voice_facts(db, user, thread, history[-1].content), ensure_ascii=False, default=str)
+        system += "\n\n" + VOICE_STYLE + "\n\n調べ済みの情報:\n" + facts
     messages: list[dict] = [{"role": "system", "content": system}]
     messages += [{"role": m.role, "content": m.content} for m in history]
     tools_used: list[str] = []
     try:
         client = llm.client()
+        if voice:
+            res = client.chat.completions.create(**llm.model_options(), messages=messages)
+            return res.choices[0].message.content, tools_used
         for _ in range(MAX_TOOL_ROUNDS):
             res = client.chat.completions.create(**llm.model_options(), messages=messages, tools=TOOLS)
             msg = res.choices[0].message

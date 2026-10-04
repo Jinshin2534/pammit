@@ -42,15 +42,16 @@ class KnowledgeTests(unittest.TestCase):
 
 
 class FakeOpenAI:
-    """1回目は search_knowledge を呼び、2回目に答える。"""
+    """1回目は search_knowledge を呼び、2回目に答える。answer_first なら1回目で答える。"""
 
-    def __init__(self):
+    def __init__(self, answer_first: bool = False):
+        self.answer_first = answer_first
         self.calls = []
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
 
     def create(self, **kwargs):
         self.calls.append(kwargs)
-        if len(self.calls) == 1:
+        if len(self.calls) == 1 and not self.answer_first:
             call = SimpleNamespace(id="call_1", function=SimpleNamespace(
                 name="search_knowledge", arguments=json.dumps({"query": "密集 摘果"})))
             msg = SimpleNamespace(content=None, tool_calls=[call])
@@ -92,18 +93,38 @@ class ChatTests(unittest.TestCase):
         self.assertEqual(tool_result["role"], "tool")
         self.assertIn("小さい実", tool_result["content"])
 
-    def test_voice_mode_asks_for_short_spoken_answer(self) -> None:
+    def test_voice_mode_answers_in_one_call_with_prefetched_facts(self) -> None:
+        farm = make_farm()
+        add_knowledge(farm_id=farm.farm_id)
+        headers = login(self.client, farm, farm.worker_id)
+        sid = self.client.post("/api/v1/work-sessions", headers=headers, json={
+            "client_event_id": str(uuid4()), "plot_id": farm.plot_ids[1], "work_type": "摘果・摘葉",
+            "started_at": "2026-10-04T08:00:00+09:00"}).json()["id"]
+        thread = self.client.post("/api/v1/chat/threads", headers=headers, json={"session_id": sid}).json()
+        fake = FakeOpenAI(answer_first=True)
+        with mock.patch.object(chat.llm, "available", return_value=True), \
+                mock.patch.object(chat.llm, "client", return_value=fake):
+            r = self.client.post(f"/api/v1/chat/threads/{thread['id']}/messages", headers=headers,
+                                 json={"content": "混んでいる実はどれから摘む？", "mode": "voice"})
+        self.assertEqual(r.json()["content"], "小さい実から摘みましょう。")
+        self.assertEqual(len(fake.calls), 1)          # 問い合わせは1回だけ
+        self.assertNotIn("tools", fake.calls[0])      # 関数は使わない
+        system = fake.calls[0]["messages"][0]["content"]
+        self.assertIn("音声で読み上げます", system)
+        self.assertIn("三番ハウス", system)            # 今いる農園の状態
+        self.assertIn("小さい実", system)              # 質問に近い知識
+
+    def test_text_mode_keeps_tools(self) -> None:
         farm = make_farm()
         headers = login(self.client, farm, farm.worker_id)
         thread = self.client.post("/api/v1/chat/threads", headers=headers, json={}).json()
-        for mode in ("voice", "text"):
-            fake = FakeOpenAI()
-            with mock.patch.object(chat.llm, "available", return_value=True), \
-                    mock.patch.object(chat.llm, "client", return_value=fake):
-                self.client.post(f"/api/v1/chat/threads/{thread['id']}/messages", headers=headers,
-                                 json={"content": "混んでいるときは？", "mode": mode})
-            system = fake.calls[0]["messages"][0]["content"]
-            self.assertEqual("音声で読み上げます" in system, mode == "voice")
+        fake = FakeOpenAI()
+        with mock.patch.object(chat.llm, "available", return_value=True), \
+                mock.patch.object(chat.llm, "client", return_value=fake):
+            self.client.post(f"/api/v1/chat/threads/{thread['id']}/messages", headers=headers,
+                             json={"content": "混んでいるときは？"})
+        self.assertIn("tools", fake.calls[0])
+        self.assertNotIn("音声で読み上げます", fake.calls[0]["messages"][0]["content"])
 
     def test_threads_are_private(self) -> None:
         farm = make_farm()
