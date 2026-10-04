@@ -42,7 +42,7 @@ export default function FarmScreen() {
               <AppText variant="captionBold" style={styles.accent}>水管理・様子を見ましょう</AppText>
               <AppText variant="bodyLgBold" style={styles.deep}>{'今すぐの灌水は\n必要なさそうです'}</AppText>
             </View>
-            <Image source={require('../../../assets/images/pamikun-2.png')} contentFit="cover" style={styles.farmCharacter} />
+            <Image source={require('../../../assets/images/pamikun.png')} contentFit="cover" style={styles.farmCharacter} />
           </View>
           <AppText variant="caption" style={styles.muted}>{'乾燥が進んでいます。\n明日午前に土の状態を確認しましょう。'}</AppText>
         </View>
