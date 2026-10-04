@@ -6,7 +6,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '@/theme/tokens';
 
@@ -33,6 +33,7 @@ export function PageLayout({
   scrollable = true,
   testID,
 }: PageLayoutProps) {
+  const insets = useSafeAreaInsets();
   const contentStyle = [
     styles.content,
     { paddingHorizontal: contentPadding },
@@ -41,46 +42,51 @@ export function PageLayout({
 
   return (
     <View style={styles.page} testID={testID}>
-      {background != null && (
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          {background}
-        </View>
-      )}
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView
-          style={styles.safeArea}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          {header != null && <View style={styles.fixed}>{header}</View>}
-          {scrollable ? (
-            <ScrollView
-              style={styles.body}
-              contentContainerStyle={contentStyle}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              contentInsetAdjustmentBehavior="never"
-              testID={testID ? `${testID}-body` : undefined}>
-              {children}
-            </ScrollView>
-          ) : (
-            <View
-              style={[styles.body, contentStyle]}
-              testID={testID ? `${testID}-body` : undefined}>
-              {children}
-            </View>
-          )}
-          {footer != null && (
-            <View style={[styles.fixed, styles.footer]} testID={testID ? `${testID}-footer` : undefined}>
-              {footer}
-            </View>
-          )}
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+      <View style={styles.canvas}>
+        {background != null && (
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            {background}
+          </View>
+        )}
+        <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
+          <KeyboardAvoidingView
+            style={styles.safeArea}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            {header != null && <View style={styles.fixed}>{header}</View>}
+            {scrollable ? (
+              <ScrollView
+                style={styles.body}
+                contentContainerStyle={contentStyle}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                contentInsetAdjustmentBehavior="never"
+                testID={testID ? `${testID}-body` : undefined}>
+                {children}
+              </ScrollView>
+            ) : (
+              <View
+                style={[styles.body, contentStyle]}
+                testID={testID ? `${testID}-body` : undefined}>
+                {children}
+              </View>
+            )}
+            {footer != null && (
+              <View
+                style={[styles.fixed, styles.footer, { paddingBottom: 10 + insets.bottom }]}
+                testID={testID ? `${testID}-footer` : undefined}>
+                {footer}
+              </View>
+            )}
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.surface },
+  page: { alignItems: 'center', flex: 1, backgroundColor: colors.surface },
+  canvas: { backgroundColor: colors.surface, flex: 1, maxWidth: Platform.OS === 'web' ? 360 : undefined, width: '100%' },
   safeArea: { flex: 1 },
   fixed: { flexShrink: 0 },
   body: { flex: 1, minHeight: 0 },
@@ -91,5 +97,8 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   centered: { justifyContent: 'center' },
-  footer: { paddingBottom: 10 },
+  footer: {
+    backgroundColor: colors.surface,
+    zIndex: 2,
+  },
 });

@@ -7,6 +7,8 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { useState } from 'react';
+import ExpoDateTimePicker from '@expo/ui/community/datetime-picker';
 
 import { colors, fonts, radii, strokes } from '@/theme/tokens';
 
@@ -33,13 +35,26 @@ export type TextFieldTimeRangeProps = TextFieldBaseProps & {
   type: 'time-range';
   from: string;
   to: string;
-  onPress: () => void;
+  onChangeFrom: (value: string) => void;
+  onChangeTo: (value: string) => void;
 };
 
 export type TextFieldProps = TextFieldTextProps | TextFieldTimeRangeProps;
 
+function timeToDate(value: string) {
+  const [hours, minutes] = value.split(':').map(Number);
+  const date = new Date();
+  date.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+  return date;
+}
+
+function dateToTime(value: Date) {
+  return `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+}
+
 export function TextField(props: TextFieldProps) {
   const { label, error, disabled = false, testID, style } = props;
+  const [activeTime, setActiveTime] = useState<'from' | 'to' | null>(null);
   const fieldStyle = [
     styles.field,
     disabled && styles.disabledField,
@@ -53,24 +68,47 @@ export function TextField(props: TextFieldProps) {
       </Text>
 
       {props.type === 'time-range' ? (
-        <Pressable
-          accessibilityLabel={`${label} ${props.from}から${props.to}`}
-          accessibilityRole="button"
-          accessibilityState={{ disabled }}
-          disabled={disabled}
-          onPress={props.onPress}
-          testID={testID}
-          style={({ pressed }) => [fieldStyle, styles.timeRange, pressed && styles.pressed]}>
-          <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={styles.value}>
-            {props.from}
-          </Text>
+        <View style={[fieldStyle, styles.timeRange]} testID={testID}>
+          <Pressable
+            accessibilityLabel={`${label}の開始時刻 ${props.from}`}
+            accessibilityRole="button"
+            accessibilityState={{ disabled }}
+            disabled={disabled}
+            onPress={() => setActiveTime('from')}
+            style={({ pressed }) => [styles.timeButton, pressed && styles.pressed]}>
+            <Text maxFontSizeMultiplier={1.2} style={styles.value}>{props.from}</Text>
+          </Pressable>
           <Text maxFontSizeMultiplier={1.2} style={styles.value}>
             〜
           </Text>
-          <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={styles.value}>
-            {props.to}
-          </Text>
-        </Pressable>
+          <Pressable
+            accessibilityLabel={`${label}の終了時刻 ${props.to}`}
+            accessibilityRole="button"
+            accessibilityState={{ disabled }}
+            disabled={disabled}
+            onPress={() => setActiveTime('to')}
+            style={({ pressed }) => [styles.timeButton, styles.timeButtonEnd, pressed && styles.pressed]}>
+            <Text maxFontSizeMultiplier={1.2} style={styles.value}>{props.to}</Text>
+          </Pressable>
+          {activeTime ? (
+            <ExpoDateTimePicker
+              accentColor={colors.primary}
+              display="default"
+              is24Hour
+              mode="time"
+              onDismiss={() => setActiveTime(null)}
+              onValueChange={(_, selectedDate) => {
+                const nextValue = dateToTime(selectedDate);
+                if (activeTime === 'from') props.onChangeFrom(nextValue);
+                else props.onChangeTo(nextValue);
+                setActiveTime(null);
+              }}
+              presentation="dialog"
+              themeVariant="light"
+              value={timeToDate(activeTime === 'from' ? props.from : props.to)}
+            />
+          ) : null}
+        </View>
       ) : (
         <TextInput
           {...props.inputProps}
@@ -138,6 +176,13 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     lineHeight: 25,
   },
+  timeButton: {
+    alignItems: 'flex-start',
+    height: 50,
+    justifyContent: 'center',
+    width: 67,
+  },
+  timeButtonEnd: { alignItems: 'flex-end' },
   disabledField: {
     backgroundColor: colors.surfaceMuted,
     borderColor: colors.disabled,
@@ -152,7 +197,5 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     lineHeight: 18,
   },
-  pressed: {
-    opacity: 0.7,
-  },
+  pressed: { opacity: 0.7 },
 });

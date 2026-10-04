@@ -1,38 +1,52 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { StyleSheet } from 'react-native';
 
-import { PammitLogo } from '@/components/branding';
+import { HeaderBackground } from '@/components/background/header-background';
 import { PageLayout } from '@/components/layout/page-layout';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { ListItem } from '@/components/ui';
-
-const users = {
-  owner: [
-    { id: 'owner-1', name: '山田 太郎', note: '師匠農家さん' },
-    { id: 'owner-2', name: '佐藤 花子', note: '師匠農家さん' },
-  ],
-  worker: [
-    { id: 'worker-1', name: '鈴木 一郎', note: '後継者' },
-    { id: 'worker-2', name: '田中 美咲', note: 'アルバイト' },
-    { id: 'worker-3', name: '高橋 実', note: 'アルバイト' },
-  ],
-} as const;
+import { colors, strokes } from '@/theme/tokens';
+import { useAppState } from '@/providers/app-state';
 
 export default function UserScreen() {
   const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
   const role = roleParam === 'owner' ? 'owner' : 'worker';
+  const { users } = useAppState();
+  const visibleUsers = users.filter((user) => user.role === role);
 
   return (
-    <PageLayout header={<ScreenHeader title="名前を選ぶ" showBack onBack={() => router.back()} topPadding={16} />} testID="user-screen">
-      <PammitLogo compact />
-      {users[role].map((user) => (
+    <PageLayout
+      background={<HeaderBackground position="top" />}
+      header={<ScreenHeader title="お名前を選択" showBack onBack={() => router.back()} />}
+      scrollable
+      testID="user-screen">
+      {visibleUsers.map((user) => (
         <ListItem
           key={user.id}
           title={user.name}
-          description={user.note}
-          onPress={() => router.push({ pathname: '/(auth)/pin', params: { role, userId: user.id, userName: user.name } })}
+          showChevron={false}
+          style={styles.item}
+          onPress={() =>
+            router.push({
+              pathname: '/(auth)/pin',
+              params: { role, userId: user.id, userName: user.name },
+            })
+          }
           testID={`user-${user.id}`}
         />
       ))}
     </PageLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  item: {
+    backgroundColor: colors.surface,
+    borderColor: colors.primary,
+    borderWidth: strokes.default,
+    height: 58,
+    minHeight: 58,
+    paddingHorizontal: 20,
+    paddingVertical: 13,
+  },
+});

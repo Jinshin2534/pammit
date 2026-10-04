@@ -5,7 +5,6 @@ import { StyleSheet, View } from 'react-native';
 import { PageLayout } from '@/components/layout/page-layout';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { AppText, IconButton, SmallButton } from '@/components/ui';
-import { colors } from '@/theme/tokens';
 
 export default function ButtonsPreview() {
   const [message, setMessage] = useState('まだ押されていません');
@@ -13,25 +12,24 @@ export default function ButtonsPreview() {
   if (!__DEV__) return <Redirect href="/" />;
 
   return (
-    <PageLayout header={<ScreenHeader title="小さいボタン" topPadding={16} />} testID="buttons-preview">
+    <PageLayout header={<ScreenHeader title="小さいボタン" />} testID="buttons-preview">
       <AppText variant="bodyLgBold">IconButton</AppText>
       <View style={styles.row}>
         <IconButton
           accessibilityLabel="追加"
-          icon={<AppText variant="title" style={styles.icon}>＋</AppText>}
+          icon="plus"
           onPress={() => setMessage('追加を押しました')}
           testID="icon-button-primary"
         />
         <IconButton
-          accessibilityLabel="編集"
-          icon={<AppText variant="bodyLgBold" style={styles.icon}>✎</AppText>}
-          onPress={() => setMessage('編集を押しました')}
-          variant="secondary"
+          accessibilityLabel="次へ"
+          icon="forward"
+          onPress={() => setMessage('次へを押しました')}
           testID="icon-button-secondary"
         />
         <IconButton
           accessibilityLabel="押せないボタン"
-          icon={<AppText variant="title" style={styles.icon}>＋</AppText>}
+          icon="minus"
           onPress={() => undefined}
           disabled
           testID="icon-button-disabled"
@@ -57,8 +55,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-  },
-  icon: {
-    color: colors.textInverse,
   },
 });

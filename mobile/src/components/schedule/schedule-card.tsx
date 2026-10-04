@@ -1,12 +1,82 @@
 import { Pressable, StyleSheet, View } from 'react-native';
+
 import { AppText } from '@/components/ui';
-import { colors, radii, workTypeColors } from '@/theme/tokens';
+import { colors, radii, strokes } from '@/theme/tokens';
 import { WorkTypeKey } from './work-type-legend';
 
-export type ScheduleCardProps = { start: string; end: string; work: string; workType: WorkTypeKey; place: string; members: readonly string[]; note?: string; onPress?: () => void; testID?: string };
-export function ScheduleCard({ start, end, work, workType, place, members, note, onPress, testID }: ScheduleCardProps) {
+export type ScheduleCardLayout = 'compact' | 'wide';
+export type ScheduleCardAppearance = 'filled' | 'outlined';
+
+export type ScheduleCardProps = {
+  start: string;
+  end: string;
+  work: string;
+  workType: WorkTypeKey;
+  place: string;
+  members: readonly string[];
+  note?: string;
+  layout?: ScheduleCardLayout;
+  appearance?: ScheduleCardAppearance;
+  onPress?: () => void;
+  testID?: string;
+};
+
+export function ScheduleCard({ start, end, work, place, members, layout = 'compact', appearance = 'filled', onPress, testID }: ScheduleCardProps) {
   const shown = members.slice(0, 5);
   const extra = Math.max(0, members.length - shown.length);
-  return <Pressable accessibilityRole={onPress ? 'button' : undefined} disabled={!onPress} onPress={onPress} testID={testID} style={({ pressed }) => [styles.card, { borderLeftColor: workTypeColors[workType] }, pressed && styles.pressed]}><View style={styles.heading}><AppText variant="bodyBold">{start} 〜 {end}</AppText><View style={[styles.badge, { backgroundColor: workTypeColors[workType] }]}><AppText variant="small">{work}</AppText></View></View><AppText variant="bodyLgBold">{place}</AppText><AppText variant="caption">担当　{shown.join('・') || '未指定'}{extra > 0 ? `・ほか${extra}名` : ''}</AppText>{note && <AppText variant="caption" style={styles.note}>備考　{note}</AppText>}</Pressable>;
+  const outlined = appearance === 'outlined';
+  const memberText = `${shown.join('・') || '未指定'}${extra > 0 ? `・ほか${extra}名` : ''}`;
+
+  return (
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      disabled={!onPress}
+      onPress={onPress}
+      testID={testID}
+      style={({ pressed }) => [
+        styles.card,
+        layout === 'wide' ? styles.wide : styles.compact,
+        outlined && styles.outlined,
+        pressed && styles.pressed,
+      ]}>
+      <View style={[styles.inner, layout === 'wide' && styles.wideInner]}>
+        <View style={styles.time}>
+          <AppText>{start}</AppText>
+          <View style={styles.line} />
+          <AppText>{end}</AppText>
+        </View>
+        <View style={styles.content}>
+          <AppText variant="bodyLg" numberOfLines={1} style={[styles.work, outlined && styles.outlinedWork]}>{work}</AppText>
+          <View style={styles.details}>
+            <View style={styles.detailRow}>
+              <AppText variant="small">場所</AppText>
+              <AppText variant="caption" numberOfLines={1}>{place}</AppText>
+            </View>
+            <View style={styles.detailRow}>
+              <AppText variant="small">担当</AppText>
+              <AppText variant="caption" numberOfLines={1} style={styles.member}>{memberText}</AppText>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
 }
-const styles = StyleSheet.create({ card: { backgroundColor: colors.surface, borderColor: colors.disabled, borderLeftWidth: 8, borderRadius: radii.md, borderWidth: 1, gap: 8, minHeight: 142, padding: 16, width: 260 }, heading: { alignItems: 'center', flexDirection: 'row', gap: 8, justifyContent: 'space-between' }, badge: { borderRadius: radii.full, paddingHorizontal: 9, paddingVertical: 4 }, note: { color: colors.textSub }, pressed: { opacity: 0.7 } });
+
+const styles = StyleSheet.create({
+  card: { alignItems: 'flex-start', backgroundColor: colors.primary, borderRadius: radii.md, flexShrink: 0, paddingBottom: 10, paddingHorizontal: 11, paddingTop: 8 },
+  compact: { height: 123, width: 181 },
+  wide: { height: 123, width: 284 },
+  outlined: { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: strokes.default, height: 131 },
+  inner: { gap: 12, width: 159 },
+  wideInner: { width: 254 },
+  time: { alignItems: 'center', flexDirection: 'row', gap: 3 },
+  line: { backgroundColor: colors.text, height: 1, width: 40 },
+  work: { color: colors.textInverse },
+  outlinedWork: { color: colors.text },
+  content: { gap: 12, width: '100%' },
+  details: { gap: 3 },
+  detailRow: { alignItems: 'flex-end', flexDirection: 'row', gap: 13, overflow: 'hidden' },
+  member: { flexShrink: 1, maxWidth: 78 },
+  pressed: { opacity: 0.7 },
+});

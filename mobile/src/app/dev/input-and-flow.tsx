@@ -10,7 +10,7 @@ const pinRows: PinKeyValue[][] = [
   ['1', '2', '3'],
   ['4', '5', '6'],
   ['7', '8', '9'],
-  ['delete', '0'],
+  ['delete', '0', 'submit'],
 ];
 
 export default function InputAndFlowPreview() {
@@ -22,6 +22,7 @@ export default function InputAndFlowPreview() {
 
   const handlePin = (value: PinKeyValue) => {
     if (value === 'delete') setPin((current) => current.slice(0, -1));
+    else if (value === 'submit') return;
     else setPin((current) => current.length < 4 ? current + value : current);
   };
 

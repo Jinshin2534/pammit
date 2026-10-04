@@ -25,7 +25,7 @@ export default function SelectionChatFeedbackPreview() {
 
   const save = () => { setDialog(false); setToast(true); };
   return (
-    <PageLayout header={<View><Banner kind="network" actionLabel="再試行" onAction={() => setToast(true)} testID="preview-network-banner" /><ScreenHeader title="共通部品の確認" topPadding={16} /></View>} testID="selection-chat-feedback-preview">
+    <PageLayout header={<View><Banner kind="network" actionLabel="再試行" onAction={() => setToast(true)} testID="preview-network-banner" /><ScreenHeader title="共通部品の確認" /></View>} testID="selection-chat-feedback-preview">
       <Dropdown label="作業を選ぶ（複数選択）" options={workOptions} value={works} onChange={setWorks} multiple testID="preview-dropdown" />
       <ListItem title="三番ハウス" description="トマト・12a" selected onPress={() => setToast(true)} testID="preview-list-item" />
 

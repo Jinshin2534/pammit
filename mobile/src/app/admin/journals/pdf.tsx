@@ -1,15 +1,34 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Toast } from '@/components/feedback';
-import { FlowFooter } from '@/components/flow';
-import { PageLayout } from '@/components/layout/page-layout';
-import { ScreenHeader } from '@/components/navigation/screen-header';
-import { AppText, Card, TextField } from '@/components/ui';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { AdminButton, AdminFlowFooter, AdminHeader, AdminPage, adminTextStyles } from '@/components/admin/figma-admin-ui';
+import { colors, radii, strokes } from '@/theme/tokens';
 
 export default function JournalPdfScreen() {
-  const [from, setFrom] = useState('2026-10-01');
-  const [to, setTo] = useState('2026-10-31');
-  const [created, setCreated] = useState(false);
-  const create = () => { setCreated(true); setTimeout(() => setCreated(false), 2000); };
-  return <PageLayout header={<ScreenHeader title="農園日誌をPDF" showBack onBack={() => router.back()} topPadding={16} />} footer={<FlowFooter nextLabel="PDFを作成" onBack={() => router.back()} onNext={create} />} testID="journal-pdf-screen"><AppText>日誌に含める期間を選んでください。</AppText><TextField label="開始日" value={from} onChangeText={setFrom} placeholder="YYYY-MM-DD" /><TextField label="終了日" value={to} onChangeText={setTo} placeholder="YYYY-MM-DD" /><Card title="PDFに含まれる内容" body="作業日時、園地、作業内容、担当者、判定件数、今日の気づき、備考" variant="filled" /><Toast visible={created} message="PDFを作成しました" /></PageLayout>;
+  const [exported, setExported] = useState(false);
+  return (
+    <AdminPage header={<AdminHeader title="農園日誌を出力" />} footer={<AdminFlowFooter backOnly onBack={() => router.back()} />} testID="journal-pdf-screen">
+      <View style={styles.group}>
+        <Text maxFontSizeMultiplier={1.2} style={adminTextStyles.bodyLg}>期間</Text>
+        <Pressable accessibilityRole="button" style={({ pressed }) => [styles.range, pressed && styles.pressed]}>
+          <Text maxFontSizeMultiplier={1.2} style={adminTextStyles.bodyLg}>8/1</Text>
+          <Text maxFontSizeMultiplier={1.2} style={adminTextStyles.bodyLg}>〜</Text>
+          <Text maxFontSizeMultiplier={1.2} style={adminTextStyles.bodyLg}>10/22</Text>
+        </Pressable>
+      </View>
+      <View style={styles.exportGroup}>
+        <AdminButton label="PDFを出力" variant="cta" onPress={() => setExported(true)} />
+        {exported && <Text accessibilityRole="alert" maxFontSizeMultiplier={1.2} style={styles.exported}>出力しました</Text>}
+      </View>
+    </AdminPage>
+  );
 }
+
+const styles = StyleSheet.create({
+  group: { alignSelf: 'stretch', gap: 8 },
+  range: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, flexDirection: 'row', height: 58, justifyContent: 'space-between', paddingHorizontal: 20 },
+  pressed: { opacity: 0.7 },
+  exportGroup: { alignItems: 'center', alignSelf: 'stretch', gap: 10 },
+  exported: { ...adminTextStyles.bodyLg, color: colors.primary },
+});

@@ -29,7 +29,6 @@ export function BottomNav({ role, activeTab, onTabPress, testID }: BottomNavProp
           accessibilityRole="tab"
           accessibilityLabel={tab.accessibilityLabel}
           accessibilityState={{ selected: activeTab === tab.key }}
-          aria-selected={activeTab === tab.key}
           onPress={() => onTabPress(tab.key)}
           testID={testID ? `${testID}-${tab.key}` : undefined}
           style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
@@ -49,8 +48,8 @@ export function BottomNav({ role, activeTab, onTabPress, testID }: BottomNavProp
 }
 
 const styles = StyleSheet.create({
-  nav: { width: '100%', flexDirection: 'row', paddingHorizontal: 8 },
-  tab: { flex: 1, minWidth: 0, alignItems: 'center' },
+  nav: { width: '100%', height: 62, flexDirection: 'row', paddingHorizontal: 8 },
+  tab: { flex: 1, minWidth: 0, height: 62, alignItems: 'center' },
   icon: { width: 49, height: 49, marginBottom: -2 },
   aiIcon: { width: 37 },
   label: {

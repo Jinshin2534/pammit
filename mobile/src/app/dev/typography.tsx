@@ -28,7 +28,7 @@ export default function TypographyPreview() {
 
   return (
     <PageLayout
-      header={<ScreenHeader title="文字スタイル" topPadding={16} />}
+      header={<ScreenHeader title="文字スタイル" />}
       testID="typography-preview">
       {samples.map(({ variant, label, sample }) => (
         <View key={variant} style={styles.sample} testID={`typography-${variant}`}>

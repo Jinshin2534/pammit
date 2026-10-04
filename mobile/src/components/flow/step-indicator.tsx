@@ -10,10 +10,16 @@ export function StepIndicator({ current, total, testID }: StepIndicatorProps) {
   const safeCurrent = Math.min(Math.max(1, current), safeTotal);
   return (
     <View accessibilityLabel={`${safeTotal}段階中${safeCurrent}段階目`} style={styles.wrapper} testID={testID}>
-      <AppText variant="caption">{safeCurrent} / {safeTotal}</AppText>
+      <View style={styles.line} />
       <View style={styles.row}>
         {Array.from({ length: safeTotal }, (_, index) => (
-          <View key={index} style={[styles.bar, index < safeCurrent && styles.active]} />
+          <View key={index} style={[styles.dot, index + 1 === safeCurrent && styles.current]}>
+            <AppText
+              variant="bodyLg"
+              style={[styles.number, index + 1 === safeCurrent && styles.currentNumber]}>
+              {index + 1}
+            </AppText>
+          </View>
         ))}
       </View>
     </View>
@@ -21,8 +27,11 @@ export function StepIndicator({ current, total, testID }: StepIndicatorProps) {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { alignItems: 'center', gap: 6, paddingHorizontal: 40 },
-  row: { flexDirection: 'row', gap: 8, width: '100%' },
-  bar: { backgroundColor: colors.disabled, borderRadius: radii.full, flex: 1, height: 8 },
-  active: { backgroundColor: colors.primary },
+  wrapper: { height: 42, position: 'relative', width: 295 },
+  line: { backgroundColor: colors.surface, height: 3, left: 21, position: 'absolute', right: 21, top: 20 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
+  dot: { alignItems: 'center', backgroundColor: colors.disabled, borderRadius: radii.full, height: 42, justifyContent: 'center', width: 42 },
+  current: { backgroundColor: colors.accent },
+  number: { lineHeight: 25, textAlign: 'center' },
+  currentNumber: { color: colors.textInverse },
 });

@@ -1,5 +1,6 @@
+import { useId } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 
 export type HeaderBackgroundProps = {
   position?: 'top' | 'center';
@@ -7,7 +8,8 @@ export type HeaderBackgroundProps = {
 };
 
 export function HeaderBackground({ position = 'top', testID }: HeaderBackgroundProps) {
-  const centerY = position === 'top' ? '8%' : '48%';
+  const centerY = position === 'top' ? 0 : 400;
+  const gradientId = `header-glow-${useId().replace(/:/g, '')}`;
 
   return (
     <View
@@ -16,15 +18,16 @@ export function HeaderBackground({ position = 'top', testID }: HeaderBackgroundP
       pointerEvents="none"
       style={styles.background}
       testID={testID}>
-      <Svg height="100%" width="100%">
+      <Svg height="100%" width="100%" viewBox="0 0 360 800" preserveAspectRatio="none">
         <Defs>
-          <RadialGradient id="header-glow" cx="50%" cy={centerY} rx="70%" ry="44%">
-            <Stop offset="0" stopColor="#FFC64C" stopOpacity="0.48" />
-            <Stop offset="0.58" stopColor="#FFC64C" stopOpacity="0.16" />
-            <Stop offset="1" stopColor="#FFC64C" stopOpacity="0" />
+          <RadialGradient id={gradientId} cx={180} cy={centerY} r={241} gradientUnits="userSpaceOnUse">
+            <Stop offset="0" stopColor="#FFC64C" />
+            <Stop offset="0.451934" stopColor="#FFC64C" stopOpacity="0.9" />
+            <Stop offset="0.822136" stopColor="#FFBC5E" stopOpacity="0.9" />
+            <Stop offset="1" stopColor="#FFBC6D" stopOpacity="0" />
           </RadialGradient>
         </Defs>
-        <Rect width="100%" height="100%" fill="url(#header-glow)" />
+        <Circle cx={180} cy={centerY} r={241} fill={`url(#${gradientId})`} />
       </Svg>
     </View>
   );

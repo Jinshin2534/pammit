@@ -1,11 +1,50 @@
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { PageLayout } from '@/components/layout/page-layout';
-import { ScreenHeader } from '@/components/navigation/screen-header';
-import { AppText, Button, Card, SmallButton, TextField } from '@/components/ui';
+import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { WorkBackButton, WorkButton, workTextStyles } from '@/components/work/figma-work-ui';
+import { colors } from '@/theme/tokens';
 
 export default function InsightScreen() {
-  const [insight, setInsight] = useState('');
   const [recording, setRecording] = useState(false);
-  return <PageLayout variant="centered" header={<ScreenHeader title="今日の気づき" topPadding={16} />} testID="work-insight-screen"><Card title="作業、おつかれさまでした！" body="気づいたことを声または文字で残せます。記録は任意です。" variant="filled" /><SmallButton label={recording ? '録音を停止' : '声で記録する'} onPress={() => setRecording((value) => !value)} /><TextField label="気づいたこと" value={insight} onChangeText={setInsight} placeholder="例：入口側の実が大きくなっていた" inputProps={{ multiline: true }} /><Button label="記録してホームへ" size="lg" onPress={() => router.replace('/(tabs)')} /><SmallButton label="今回はスキップ" variant="outline" onPress={() => router.replace('/(tabs)')} /><AppText variant="caption">録音や文字起こしに失敗した場合も、もう一度試すかスキップできます。</AppText></PageLayout>;
+
+  return (
+    <View style={styles.page} testID="work-insight-screen">
+      <Image source={require('../../../assets/images/work-finish-ellipse.svg')} style={styles.ellipse} contentFit="fill" accessible={false} />
+      <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text maxFontSizeMultiplier={1.2} style={workTextStyles.title}>作業フィニッシュ！</Text>
+          <Text maxFontSizeMultiplier={1.2} style={workTextStyles.body}>切る75 / 残す56 / 判断不可2</Text>
+        </View>
+        <View style={styles.content}>
+          <View style={styles.messageGroup}>
+            <Text maxFontSizeMultiplier={1.2} style={[workTextStyles.bodyLg, styles.center]}>{'お疲れ様でした！\n今日の気づきを残しておこう'}</Text>
+            <View style={styles.recorder}>
+              <Image source={require('../../../assets/images/mic.png')} style={styles.mic} contentFit="cover" accessible={false} />
+              <WorkButton label={recording ? 'ストップ' : 'スタート'} onPress={() => setRecording((value) => !value)} />
+            </View>
+          </View>
+        </View>
+        <View style={styles.footer}>
+          <WorkBackButton onPress={() => router.back()} />
+          <WorkButton label="ホームへ戻る" onPress={() => router.replace('/(tabs)')} />
+        </View>
+      </SafeAreaView>
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  page: { alignSelf: 'center', backgroundColor: colors.accent, flex: 1, maxWidth: 360, overflow: 'hidden', width: '100%' },
+  ellipse: { height: 516, left: -84, position: 'absolute', top: 142, width: 530 },
+  safeArea: { flex: 1 },
+  header: { alignItems: 'center', gap: 19, height: 78, paddingBottom: 8, paddingTop: 40, width: '100%' },
+  content: { alignItems: 'center', flex: 1, justifyContent: 'center', paddingBottom: 24, paddingHorizontal: 40, paddingTop: 8 },
+  messageGroup: { alignItems: 'center', gap: 44, width: 299 },
+  center: { textAlign: 'center' },
+  recorder: { alignItems: 'center', gap: 24, width: 152 },
+  mic: { height: 110, width: 107 },
+  footer: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 32, paddingHorizontal: 40, paddingTop: 12, width: '100%' },
+});

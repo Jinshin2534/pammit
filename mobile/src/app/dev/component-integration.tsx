@@ -18,6 +18,8 @@ const tabNames: Record<BottomNavTab, string> = {
 
 export default function ComponentIntegrationPreview() {
   const [name, setName] = useState('');
+  const [from, setFrom] = useState('09:00');
+  const [to, setTo] = useState('12:00');
   const [activeTab, setActiveTab] = useState<BottomNavTab>('home');
   const [message, setMessage] = useState('まだ操作されていません');
 
@@ -31,7 +33,6 @@ export default function ComponentIntegrationPreview() {
           title="部品の組み合わせ確認"
           showBack
           onBack={() => setMessage('戻るボタンを押しました')}
-          topPadding={16}
           testID="integration-header"
         />
       }
@@ -67,9 +68,10 @@ export default function ComponentIntegrationPreview() {
         <TextField
           type="time-range"
           label="作業時間"
-          from="09:00"
-          to="12:00"
-          onPress={() => setMessage('作業時間を押しました')}
+          from={from}
+          to={to}
+          onChangeFrom={setFrom}
+          onChangeTo={setTo}
           testID="integration-time"
         />
       </Card>

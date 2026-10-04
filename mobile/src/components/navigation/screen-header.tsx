@@ -1,7 +1,8 @@
-import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TextStyle, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, fonts, radii, spacing } from '@/theme/tokens';
+import { IconButton } from '@/components/ui/icon-button';
+import { colors, fonts, spacing } from '@/theme/tokens';
 
 type BackNavigation =
   | { showBack: true; onBack: () => void }
@@ -9,10 +10,11 @@ type BackNavigation =
 
 export type ScreenHeaderProps = BackNavigation & {
   title: string;
-  /** SafeAreaViewの内側で使う場合は16。画面全体から配置する場合は40。 */
+  /** 通常は40。バナー直下など、画面固有の縮小が必要な場合だけ上書きする。 */
   topPadding?: number;
   backAccessibilityLabel?: string;
   testID?: string;
+  titleStyle?: TextStyle;
 };
 
 export function ScreenHeader({
@@ -22,30 +24,29 @@ export function ScreenHeader({
   topPadding = 40,
   backAccessibilityLabel = '前の画面に戻る',
   testID,
+  titleStyle,
 }: ScreenHeaderProps) {
+  const insets = useSafeAreaInsets();
+  const safeOffset = Math.max(0, insets.top - 24);
+
   return (
-    <View style={[styles.header, { paddingTop: topPadding }]} testID={testID}>
+    <View
+      style={[styles.header, { height: 115 + safeOffset, paddingTop: topPadding + safeOffset }]}
+      testID={testID}>
       <Text
         accessibilityRole="header"
         maxFontSizeMultiplier={1.2}
-        style={[styles.title, showBack && styles.titleWithBack]}>
+        style={[styles.title, showBack && styles.titleWithBack, titleStyle]}>
         {title}
       </Text>
       {showBack && (
-        <View style={[styles.backSlot, { top: topPadding }]}>
-          <Pressable
-            accessibilityRole="button"
+        <View style={[styles.backSlot, { top: 41.5 + safeOffset }]}>
+          <IconButton
             accessibilityLabel={backAccessibilityLabel}
-            onPress={onBack}
+            icon="back"
+            onPress={() => onBack?.()}
             testID={testID ? `${testID}-back` : undefined}
-            style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-            <Image
-              source={require('../../../assets/icons/chevron-left.svg')}
-              style={styles.backIcon}
-              contentFit="fill"
-              accessible={false}
-            />
-          </Pressable>
+          />
         </View>
       )}
     </View>
@@ -62,33 +63,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.medium,
     fontSize: 35,
-    lineHeight: 51,
+    lineHeight: 42,
     includeFontPadding: false,
     textAlign: 'center',
   },
-  titleWithBack: {
-    paddingHorizontal: 72,
-  },
+  titleWithBack: {},
   backSlot: {
     position: 'absolute',
     left: 16,
-    bottom: 24,
     justifyContent: 'center',
-  },
-  backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.full,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  backIcon: {
-    width: 59,
-    height: 59,
-  },
-  pressed: {
-    opacity: 0.7,
   },
 });
