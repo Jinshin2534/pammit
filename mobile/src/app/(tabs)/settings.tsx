@@ -1,11 +1,54 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { View } from 'react-native';
+
+import { HeaderBackground } from '@/components/background/header-background';
 import { Dialog } from '@/components/feedback';
 import { PageLayout } from '@/components/layout/page-layout';
+import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
 import { ScreenHeader } from '@/components/navigation/screen-header';
-import { AppText, ListItem, SmallButton } from '@/components/ui';
+import { ListItem } from '@/components/ui';
+
+const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/farm' | '/(tabs)/ai' | '/admin'> = {
+  home: '/(tabs)',
+  schedule: '/(tabs)/schedule',
+  farm: '/(tabs)/farm',
+  ai: '/(tabs)/ai',
+  admin: '/admin',
+};
 
 export default function SettingsScreen() {
   const [logoutOpen, setLogoutOpen] = useState(false);
-  return <PageLayout header={<ScreenHeader title="設定" showBack onBack={() => router.back()} topPadding={16} />} testID="settings-screen"><AppText variant="bodyLgBold">端末と音声</AppText><ListItem title="帽子の接続" description="未接続" onPress={() => router.push('../settings/hat')} /><ListItem title="音量" description="70%" onPress={() => router.push('../settings/volume')} /><ListItem title="話す速さ" description="ふつう" onPress={() => router.push('../settings/speech-speed')} /><AppText variant="bodyLgBold">アカウント</AppText><ListItem title="プロフィール" description="名前と役割を確認・変更" onPress={() => router.push('../settings/profile')} /><SmallButton label="ログアウト" variant="outline" onPress={() => setLogoutOpen(true)} /><Dialog visible={logoutOpen} title="ログアウトしますか？" body="もう一度利用するときは、PINの入力が必要です。" confirmLabel="ログアウト" onConfirm={() => router.replace('/(auth)/role')} onCancel={() => setLogoutOpen(false)} /></PageLayout>;
+
+  return (
+    <PageLayout
+      background={<HeaderBackground position="top" />}
+      header={<ScreenHeader title="設定" />}
+      footer={
+        <BottomNav
+          role="worker"
+          onTabPress={(tab) => router.navigate(routes[tab])}
+          testID="settings-bottom-nav"
+        />
+      }
+      scrollable={false}
+      testID="settings-screen">
+      <View style={{ gap: 20 }}>
+        <ListItem title="帽子の接続" onPress={() => router.push('../settings/hat')} />
+        <ListItem title="音量" onPress={() => router.push('../settings/volume')} />
+        <ListItem title="話す速さ" onPress={() => router.push('../settings/speech-speed')} />
+        <ListItem title="プロフィール設定" onPress={() => router.push('../settings/profile')} />
+        <ListItem title="ログアウト" onPress={() => setLogoutOpen(true)} />
+      </View>
+
+      <Dialog
+        visible={logoutOpen}
+        title="ログアウトしますか？"
+        confirmLabel="はい"
+        cancelLabel="戻る"
+        onConfirm={() => router.replace('/(auth)/role')}
+        onCancel={() => setLogoutOpen(false)}
+      />
+    </PageLayout>
+  );
 }
