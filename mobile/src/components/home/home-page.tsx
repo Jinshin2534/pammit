@@ -21,6 +21,7 @@ export type HomePageProps = {
   userName: string;
   advice: { summary: string; detail: string };
   schedules: readonly HomeSchedule[];
+  statusBanner?: ReactNode;
   footer?: ReactNode;
   onWorkStart: () => void;
   onAi: () => void;
@@ -31,6 +32,7 @@ export function HomePage({
   userName,
   advice,
   schedules,
+  statusBanner,
   footer,
   onWorkStart,
   onAi,
@@ -43,7 +45,7 @@ export function HomePage({
     <>
       <PageLayout
         background={<HeaderBackground position="top" testID="home-background" />}
-        header={<ScreenHeader title="今日のひとこと" topPadding={16} />}
+        header={<View>{statusBanner}<ScreenHeader title="今日のひとこと" topPadding={16} /></View>}
         footer={footer}
         testID="home-screen">
         <AppText variant="bodyMd">{advice.summary}</AppText>

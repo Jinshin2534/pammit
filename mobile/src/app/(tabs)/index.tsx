@@ -1,5 +1,6 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
+import { ConnectionErrorBanners } from '@/components/feedback';
 import { HomePage } from '@/components/home/home-page';
 import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
 
@@ -12,6 +13,7 @@ const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/far
 };
 
 export default function HomeScreen() {
+  const { offline } = useLocalSearchParams<{ offline?: string }>();
   return (
     <HomePage
       userName="確認ユーザー"
@@ -23,6 +25,13 @@ export default function HomeScreen() {
         { id: '1', start: '09:00', end: '10:30', work: '摘果・摘葉', place: '三番ハウス', members: ['確認ユーザー'] },
         { id: '2', start: '13:00', end: '14:00', work: '灌水', place: '一番ハウス', members: ['山田さん'] },
       ]}
+      statusBanner={
+        <ConnectionErrorBanners
+          networkDisconnected={offline === '1'}
+          onRetryNetwork={() => router.setParams({ offline: undefined })}
+          testID="home-connection-errors"
+        />
+      }
       footer={<BottomNav role="owner" activeTab="home" onTabPress={(tab) => router.navigate(routes[tab])} />}
       onWorkStart={() => router.push('/work')}
       onAi={() => router.push('/(tabs)/ai')}
