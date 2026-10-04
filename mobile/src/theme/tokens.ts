@@ -7,6 +7,7 @@ export const colors = {
   disabled: '#D9D9D9',
   surface: '#FFFFFF',
   surfaceWarm: '#FFF6EB',
+  surfaceGray: '#D9D9D9',
   surfaceMuted: '#F6F6F6',
   text: '#000000',
   textSub: '#69695D',
