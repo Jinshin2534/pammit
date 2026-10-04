@@ -41,3 +41,15 @@ example
 # generated native folders
 /ios
 /android
+
+# scripts/fetch-native-models.sh で取得するファイル
+/modules/pammit-stt/android/libs/
+/modules/pammit-stt/android/src/main/assets/reazonspeech/
+
+# scripts/fetch-fruit-detector.sh で用意するファイル
+/modules/pammit-fruit-detector/android/libs/
+/modules/pammit-fruit-detector/android/src/main/assets/
+
+# ローカルモジュールのビルド結果
+/modules/*/android/build/
+/modules/*/android/.cxx/

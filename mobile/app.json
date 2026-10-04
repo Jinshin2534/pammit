@@ -35,7 +35,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-sqlite"
+      "expo-sqlite",
+      "./plugins/with-android-build-options"
     ],
     "experiments": {
       "typedRoutes": true,

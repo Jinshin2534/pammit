@@ -1,0 +1,52 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.pammitfruitdetector'
+version = '0.1.0'
+
+// ONNX Runtime は音声認識の sherpa-onnx が同梱する libonnxruntime.so（1.28.2）を共用する。
+// 公開版の onnxruntime-android には 1.28.2 がなく、別の版を入れると同名の .so が衝突する。
+// どちらか一方しか APK に入らず、記号の版（VERS_1.28.2 など）が合わない側が読み込めなくなる。
+// そこで Java API と JNI を 1.28.2 のソースからビルドし、sherpa の .so にリンクする。
+// ソースは scripts/fetch-fruit-detector.sh で取得する。
+def ortDir = file('libs/onnxruntime-1.28.2')
+
+android {
+  namespace "expo.modules.pammitfruitdetector"
+  if (rootProject.hasProperty('ndkVersion')) {
+    ndkVersion rootProject.ext.ndkVersion
+  }
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+    consumerProguardFiles 'proguard-rules.pro'
+    ndk {
+      abiFilters 'arm64-v8a'
+    }
+    externalNativeBuild {
+      cmake {
+        arguments "-DORT_DIR=${ortDir.absolutePath}"
+      }
+    }
+  }
+  externalNativeBuild {
+    cmake {
+      path 'CMakeLists.txt'
+      version '3.22.1'
+    }
+  }
+  sourceSets {
+    main {
+      java.srcDirs += ["${ortDir}/java/src/main/java", "${ortDir}/java/src/main/android"]
+    }
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  implementation 'androidx.exifinterface:exifinterface:1.4.1'
+}
