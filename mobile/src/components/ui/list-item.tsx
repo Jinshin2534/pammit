@@ -2,16 +2,17 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 
 import { AppText } from './app-text';
+import type { TypographyVariant } from '@/theme/typography';
 import { colors, radii } from '@/theme/tokens';
 
-export type ListItemProps = { title: string; description?: string; leading?: ReactNode; trailing?: ReactNode; selected?: boolean; disabled?: boolean; onPress?: () => void; showChevron?: boolean; contentAlign?: 'start' | 'center'; style?: ViewStyle; testID?: string };
+export type ListItemProps = { title: string; description?: string; leading?: ReactNode; trailing?: ReactNode; selected?: boolean; disabled?: boolean; onPress?: () => void; showChevron?: boolean; contentAlign?: 'start' | 'center'; /** 既定は bodyLg */ titleVariant?: TypographyVariant; /** 1行に収まらないときは文字を縮める */ fitTitle?: boolean; style?: ViewStyle; testID?: string };
 
-export function ListItem({ title, description, leading, trailing, selected = false, disabled = false, onPress, showChevron = false, contentAlign = 'start', style, testID }: ListItemProps) {
+export function ListItem({ title, description, leading, trailing, selected = false, disabled = false, onPress, showChevron = false, contentAlign = 'start', titleVariant = 'bodyLg', fitTitle = false, style, testID }: ListItemProps) {
   return (
     <Pressable accessibilityRole={onPress ? 'button' : undefined} accessibilityState={{ selected, disabled }} disabled={disabled || !onPress} onPress={onPress} testID={testID} style={({ pressed }) => [styles.item, selected && styles.selected, pressed && styles.pressed, disabled && styles.disabled, style]}>
       {leading}
       <View style={[styles.copy, contentAlign === 'center' && styles.centeredCopy]}>
-        <AppText variant="bodyLg" style={[styles.title, contentAlign === 'center' && styles.centeredTitle, selected && styles.selectedText]}>{title}</AppText>
+        <AppText variant={titleVariant} numberOfLines={fitTitle ? 1 : undefined} adjustsFontSizeToFit={fitTitle} style={[styles.title, contentAlign === 'center' && styles.centeredTitle, selected && styles.selectedText]}>{title}</AppText>
         {description && <AppText variant="caption" style={[styles.description, selected && styles.selectedText]}>{description}</AppText>}
       </View>
       {trailing ?? (onPress && showChevron && <AppText variant="bodyLg">›</AppText>)}
