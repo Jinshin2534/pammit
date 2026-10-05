@@ -32,6 +32,10 @@ class Message(BaseModel):
     created_at: datetime
 
 
+class SessionChatMessage(Message):
+    thread_id: int
+
+
 class KnowledgeIn(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     body: str = Field(min_length=1)

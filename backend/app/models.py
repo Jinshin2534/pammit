@@ -7,7 +7,6 @@ from sqlalchemy import (
     JSON,
     Boolean,
     Date,
-    DateTime,
     Float,
     ForeignKey,
     Integer,
@@ -38,8 +37,8 @@ class SensorDevice(Base):
     plot_id: Mapped[int | None] = mapped_column(Integer, index=True)
     key_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
     dev_eui: Mapped[str | None] = mapped_column(String(16), unique=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
+    last_seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
 
 class SensorReading(Base):
@@ -50,8 +49,8 @@ class SensorReading(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     sensor_device_id: Mapped[int] = mapped_column(ForeignKey("sensor_devices.id"))
-    measured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    measured_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    received_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
     source: Mapped[str] = mapped_column(String(10))  # 'wifi' | 'lorawan'
     temperature: Mapped[float | None] = mapped_column(Float)
     humidity: Mapped[float | None] = mapped_column(Float)

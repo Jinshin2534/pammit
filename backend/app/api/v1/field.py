@@ -32,9 +32,12 @@ def list_field_summaries(user: User = Depends(current_user), db: Session = Depen
     response_model=FieldSummary,
     summary="農園画面の中身",
     description=(
-        "土壌水分の現在値・24時間前との差・明日の予測、明日の天気、灌水の助言を返す。\n\n"
-        "助言は上から順に判定する: 明日の雨が多い → 今の値が目安未満 → 明日の予測が目安未満 → "
-        "6〜9月で乾いていて暑い → それ以外。"
+        "土壌水分の現在値・24時間前との差・乾燥傾向・明日の予測、明日の天気、灌水の助言、"
+        "データ推移の土壌水分タブの解説を返す。\n\n"
+        "助言は上から順に判定する: 校正値がない → 土壌水分の値がない → 明日の雨が多い → 今の値が目安未満 → "
+        "明日の予測が目安未満 → 6〜9月で乾いていて暑い → それ以外。\n\n"
+        "`has_sensor` が false か `last_measured_at` が null なら「測定データがありません」。"
+        "`last_measured_at` があって `measured_at` が null なら、30時間以上測定が届いていない（センサーが止まった）。"
     ),
 )
 def get_field_summary(plot_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:

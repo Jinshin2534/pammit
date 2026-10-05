@@ -2,6 +2,7 @@ import base64
 import binascii
 import hmac
 from datetime import date, datetime, time, timedelta, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy import select
@@ -15,6 +16,7 @@ from app.services.field import soil_pct
 from app.schemas.sensors import (
     LorawanUplink,
     SensorIngest,
+    SensorHourlyOut,
     SensorIngestResult,
     SensorReadingOut,
 )
@@ -98,38 +100,77 @@ def ingest_lorawan(
     return SensorIngestResult(accepted=accepted, duplicated=duplicated)
 
 
+RAW_LIMIT = 3000  # 10分間隔なら約3週間分。7日分（1008件）は必ず入る
+HOURLY_DEFAULT_DAYS = 7
+HOURLY_LIMIT = 24 * 62
+
+
 @router.get(
     "/plots/{plot_id}/sensor-readings",
-    response_model=list[SensorReadingOut],
+    response_model=list[SensorReadingOut] | list[SensorHourlyOut],
     summary="測定値を参照する",
     description=(
-        "`from` / `to` は日本時間の日付。新しい順に最大1000件。\n\n"
+        "`from` / `to` は日本時間の日付。どちらも新しい順。\n\n"
+        "- `interval=raw`（既定）: 測定値をそのまま返す。最大3000件\n"
+        "- `interval=hour`: 1時間ごとの平均を返す（データ推移のグラフ用）。`from` を省くと今日を含む過去7日。"
+        "測定のない時間は返さないので、隣り合う点が1時間より空いていたら線を途切れさせる\n\n"
+        "農地に端末が複数あるときは区別せずまとめる。`raw` ではすべての端末の値を返し（`sensor_device_id` で見分けられる）、"
+        "`hour` ではすべての端末の平均にする。\n\n"
         "`soil_moisture_pct` は農地の校正値（乾燥時・飽和時の生値）から換算する。校正値がなければ null。"
+        "`measured_at` は UTC のタイムゾーン付き。"
     ),
 )
 def list_readings(
     plot_id: int,
     date_from: date | None = Query(default=None, alias="from"),
     date_to: date | None = Query(default=None, alias="to"),
+    interval: Literal["raw", "hour"] = Query(default="raw", description="raw: 測定値そのまま / hour: 1時間ごとの平均"),
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
-) -> list[SensorReadingOut]:
+) -> list[SensorReadingOut] | list[SensorHourlyOut]:
     plot = get_plot_in_farm(db, plot_id, user.farm_id)
+    if interval == "hour" and date_from is None:
+        date_from = (date_to or datetime.now(JST).date()) - timedelta(days=HOURLY_DEFAULT_DAYS - 1)
     stmt = (
         select(SensorReading)
         .join(SensorDevice, SensorReading.sensor_device_id == SensorDevice.id)
         .where(SensorDevice.plot_id == plot_id)
         .order_by(SensorReading.measured_at.desc())
-        .limit(1000)
     )
     if date_from:
         stmt = stmt.where(SensorReading.measured_at >= _jst_day_start(date_from))
     if date_to:
         stmt = stmt.where(SensorReading.measured_at < _jst_day_start(date_to + timedelta(days=1)))
+    if interval == "hour":
+        return hourly_means(list(db.scalars(stmt)), plot)[:HOURLY_LIMIT]
     return [
         SensorReadingOut.model_validate(r, from_attributes=True).model_copy(
             update={"soil_moisture_pct": soil_pct(r.soil_moisture_raw, plot)})
-        for r in db.scalars(stmt)
+        for r in db.scalars(stmt.limit(RAW_LIMIT))
+    ]
+
+
+def hourly_means(rows: list[SensorReading], plot) -> list[SensorHourlyOut]:
+    """1時間ごとに平均する（日本時間とUTCは時差が整数時間なので、UTC の正時で区切ってよい）。新しい順。"""
+    buckets: dict[datetime, list[SensorReading]] = {}
+    for r in rows:
+        at = r.measured_at.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        buckets.setdefault(at, []).append(r)
+
+    def mean(values: list[float | None]) -> float | None:
+        vs = [v for v in values if v is not None]
+        return round(sum(vs) / len(vs), 1) if vs else None
+
+    return [
+        SensorHourlyOut(
+            measured_at=at,
+            temperature=mean([r.temperature for r in rs]),
+            humidity=mean([r.humidity for r in rs]),
+            pressure=mean([r.pressure for r in rs]),
+            soil_moisture_pct=mean([soil_pct(r.soil_moisture_raw, plot) for r in rs]),
+            count=len(rs),
+        )
+        for at, rs in sorted(buckets.items(), reverse=True)
     ]
 
 

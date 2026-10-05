@@ -8,7 +8,15 @@ from app.api.deps import current_user, owner_user
 from app.core.errors import api_error
 from app.db import get_db
 from app.models import ChatMessage, ChatThread, KnowledgeDocument, User, WorkSession
-from app.schemas.chat import KnowledgeIn, KnowledgeOut, Message, MessageIn, Thread, ThreadCreate
+from app.schemas.chat import (
+    KnowledgeIn,
+    KnowledgeOut,
+    Message,
+    MessageIn,
+    SessionChatMessage,
+    Thread,
+    ThreadCreate,
+)
 from app.services import chat, knowledge
 
 router = APIRouter(tags=["chat"])
@@ -33,12 +41,19 @@ def _own_thread(db: Session, thread_id: int, user: User) -> ChatThread:
     "/chat/threads",
     response_model=list[Thread],
     summary="過去の会話の一覧",
-    description="自分の会話だけを、新しい順に返す。`session_id` を付けると、その作業中の会話だけを返す。",
+    description=(
+        "自分の会話だけを、最後に話した順（`updated_at` の新しい順）に100件まで返す。"
+        "作業中の会話（`session_id` あり）も混ぜて返す。古い会話にも続けて質問できる。\n\n"
+        "メッセージが1件もない会話（最初の質問が 503 などで失敗した会話）は返さない。\n\n"
+        "`session_id` を付けると、その作業中の会話だけを返す。"
+    ),
 )
 def list_threads(
     session_id: int | None = None, user: User = Depends(current_user), db: Session = Depends(get_db)
 ) -> list[Thread]:
-    stmt = select(ChatThread).where(ChatThread.user_id == user.id).order_by(ChatThread.updated_at.desc())
+    has_messages = select(ChatMessage.id).where(ChatMessage.thread_id == ChatThread.id).exists()
+    stmt = (select(ChatThread).where(ChatThread.user_id == user.id, has_messages)
+            .order_by(ChatThread.updated_at.desc(), ChatThread.id.desc()))
     if session_id is not None:
         stmt = stmt.where(ChatThread.session_id == session_id)
     return [_thread(t) for t in db.scalars(stmt.limit(100))]
@@ -63,6 +78,29 @@ def list_messages(thread_id: int, user: User = Depends(current_user), db: Sessio
     t = _own_thread(db, thread_id, user)
     rows = db.scalars(select(ChatMessage).where(ChatMessage.thread_id == t.id).order_by(ChatMessage.id))
     return [_message(m) for m in rows]
+
+
+@router.get(
+    "/work-sessions/{session_id}/chat-messages",
+    response_model=list[SessionChatMessage],
+    summary="作業中の AI 相談ログ",
+    description=(
+        "作業1回分の AI 相談（画面と音声の両方）を、古い順にまとめて返す。作業画面の「AI相談ログ」に使う。\n\n"
+        "会話は本人のものだけを返す（ほかの人の会話は、同じ作業でも返さない）。"
+        "どの会話の発言かは `thread_id` で見分ける。作業が見つからなければ 404 `session_not_found`。"
+    ),
+)
+def list_session_messages(
+    session_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)
+) -> list[SessionChatMessage]:
+    s = db.get(WorkSession, session_id)
+    if s is None or s.farm_id != user.farm_id:
+        api_error(404, "session_not_found", "作業が見つかりません")
+    rows = db.scalars(
+        select(ChatMessage).join(ChatThread, ChatMessage.thread_id == ChatThread.id)
+        .where(ChatThread.session_id == session_id, ChatThread.user_id == user.id)
+        .order_by(ChatMessage.created_at, ChatMessage.id))
+    return [SessionChatMessage(thread_id=m.thread_id, **_message(m).model_dump()) for m in rows]
 
 
 @router.post(
