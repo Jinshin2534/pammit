@@ -12,3 +12,4 @@ export {
   removePendingVoiceNote,
 } from './work-outbox';
 export type { PendingFinish, PendingVoiceNote, WorkOutbox } from './work-outbox';
+export { loadSelectedPlotId, saveSelectedPlotId } from './selected-plot';

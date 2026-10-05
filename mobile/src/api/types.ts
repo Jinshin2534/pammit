@@ -23,3 +23,9 @@ export type ScheduleUpdate = Schemas['ScheduleUpdate'];
 export type SuggestedSchedule = Schemas['SuggestedSchedule'];
 export type AssigneeCandidate = Schemas['AssigneeCandidate'];
 export type DailyAdvice = Schemas['DailyAdviceOut'];
+export type FieldSummary = Schemas['FieldSummary'];
+export type FieldAdvice = Schemas['AdviceOut'];
+export type SensorReadingOut = Schemas['SensorReadingOut'];
+
+export type ChatThread = Schemas['Thread'];
+export type ChatMessage = Schemas['Message'];
