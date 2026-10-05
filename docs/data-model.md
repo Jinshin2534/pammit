@@ -6,8 +6,6 @@ PostgreSQL 16（pgvector 拡張）を使う。`detections`・`evaluation_runs` �
 書き込みの重複は、端末が作る `client_event_id` の一意制約で防ぐ。
 テーブルは起動時に作る。既存のテーブルに列を足したら、`backend/app/db.py` の `ADDED_COLUMNS` にも書く（起動時に、なければ足す）。
 
-テーブルは起動時に作る。既存のテーブルにあとから足した列（`work_sessions.uses_hat`、`voice_notes.recorded_at`）は、起動時に列がなければ足す（`backend/app/db.py` の `ADDED_COLUMNS`）。
-
 ```mermaid
 erDiagram
     farms ||--o{ users : has
