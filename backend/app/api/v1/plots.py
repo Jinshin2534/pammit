@@ -11,9 +11,10 @@ from app.schemas.plots import Plot, PlotCreate, PlotUpdate
 router = APIRouter(prefix="/plots", tags=["plots"])
 
 
-@router.get("", response_model=list[Plot], summary="農園の一覧")
+@router.get("", response_model=list[Plot], summary="農園の一覧", description="削除（停止）した農園は返さない。")
 def list_plots(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[PlotRow]:
-    return list(db.scalars(select(PlotRow).where(PlotRow.farm_id == user.farm_id).order_by(PlotRow.id)))
+    return list(db.scalars(
+        select(PlotRow).where(PlotRow.farm_id == user.farm_id, PlotRow.active.is_(True)).order_by(PlotRow.id)))
 
 
 @router.get("/{plot_id}", response_model=Plot, summary="農園の詳細")
@@ -33,14 +34,18 @@ def create_plot(body: PlotCreate, owner: User = Depends(owner_user), db: Session
     "/{plot_id}",
     response_model=Plot,
     summary="農園の情報を変える（管理者）",
-    description="ハウス / 露地の区別、土壌水分の目安と校正値もここで変える。",
+    description=(
+        "ハウス / 露地の区別、土壌水分の目安と校正値もここで変える。\n\n"
+        "`active: false` で削除（停止）する。一覧から消え、新しい予定・作業には使えなくなる。"
+        "過去の予定・作業ログ・日誌には名前を残す。`true` に戻すと元に戻る。"
+    ),
 )
 def update_plot(
     plot_id: int, body: PlotUpdate, owner: User = Depends(owner_user), db: Session = Depends(get_db)
 ) -> PlotRow:
     plot = get_plot_in_farm(db, plot_id, owner.farm_id)
     for field, value in body.model_dump(exclude_unset=True, mode="json").items():
-        if value is None and field in ("name", "cultivation_type", "soil_check_pct"):
+        if value is None and field in ("name", "cultivation_type", "soil_check_pct", "active"):
             continue
         setattr(plot, field, value)
     db.commit()

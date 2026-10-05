@@ -1,5 +1,6 @@
 import json
 import unittest
+from datetime import datetime
 from types import SimpleNamespace
 from unittest import mock
 from uuid import uuid4
@@ -133,16 +134,68 @@ class ChatTests(unittest.TestCase):
         r = self.client.get(f"/api/v1/chat/threads/{thread['id']}/messages", headers=owner)
         self.assertEqual(r.status_code, 404)
 
+    def start_work(self, farm, headers) -> int:
+        return self.client.post("/api/v1/work-sessions", headers=headers, json={
+            "client_event_id": str(uuid4()), "plot_id": farm.plot_ids[0], "work_type": "肥料",
+            "started_at": "2026-10-04T08:00:00+09:00"}).json()["id"]
+
+    def ask(self, headers, thread_id: int, content: str, answer_first: bool = True):
+        with mock.patch.object(chat.llm, "available", return_value=True), \
+                mock.patch.object(chat.llm, "client", return_value=FakeOpenAI(answer_first=answer_first)):
+            return self.client.post(f"/api/v1/chat/threads/{thread_id}/messages", headers=headers,
+                                    json={"content": content})
+
     def test_session_thread_filter(self) -> None:
         farm = make_farm()
         headers = login(self.client, farm, farm.worker_id)
-        sid = self.client.post("/api/v1/work-sessions", headers=headers, json={
-            "client_event_id": str(uuid4()), "plot_id": farm.plot_ids[0], "work_type": "肥料",
-            "started_at": "2026-10-04T08:00:00+09:00"}).json()["id"]
-        self.client.post("/api/v1/chat/threads", headers=headers, json={})
+        sid = self.start_work(farm, headers)
+        free = self.client.post("/api/v1/chat/threads", headers=headers, json={}).json()
         in_work = self.client.post("/api/v1/chat/threads", headers=headers, json={"session_id": sid}).json()
+        self.ask(headers, free["id"], "肥料はいつ？")
+        self.ask(headers, in_work["id"], "量は？")
         r = self.client.get("/api/v1/chat/threads", headers=headers, params={"session_id": sid}).json()
         self.assertEqual([t["id"] for t in r], [in_work["id"]])
+        # 一覧には作業中の会話も混ぜ、最後に話した順に並べる
+        r = self.client.get("/api/v1/chat/threads", headers=headers).json()
+        self.assertEqual([t["id"] for t in r], [in_work["id"], free["id"]])
+
+    def test_threads_without_messages_are_hidden(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        failed = self.client.post("/api/v1/chat/threads", headers=headers, json={}).json()
+        r = self.client.post(f"/api/v1/chat/threads/{failed['id']}/messages", headers=headers,
+                             json={"content": "密集している実は？"})
+        self.assertEqual(r.status_code, 503)
+        self.assertEqual(self.client.get("/api/v1/chat/threads", headers=headers).json(), [])
+        # 同じ会話で送り直せば一覧に出る
+        self.assertEqual(self.ask(headers, failed["id"], "密集している実は？").status_code, 200)
+        self.assertEqual([t["id"] for t in self.client.get("/api/v1/chat/threads", headers=headers).json()],
+                         [failed["id"]])
+
+    def test_session_chat_log_in_one_call(self) -> None:
+        farm = make_farm()
+        worker, owner = login(self.client, farm, farm.worker_id), login(self.client, farm, farm.owner_id)
+        sid = self.start_work(farm, worker)
+        first = self.client.post("/api/v1/chat/threads", headers=worker, json={"session_id": sid}).json()
+        second = self.client.post("/api/v1/chat/threads", headers=worker, json={"session_id": sid}).json()
+        other = self.client.post("/api/v1/chat/threads", headers=worker, json={}).json()
+        self.ask(worker, first["id"], "一つ目")
+        self.ask(worker, second["id"], "二つ目")
+        self.ask(worker, other["id"], "作業と関係ない")
+
+        log = self.client.get(f"/api/v1/work-sessions/{sid}/chat-messages", headers=worker).json()
+        self.assertEqual([(m["thread_id"], m["role"]) for m in log], [
+            (first["id"], "user"), (first["id"], "assistant"), (second["id"], "user"), (second["id"], "assistant")])
+        self.assertEqual(log[0]["content"], "一つ目")
+        # ほかの人の会話は返さない
+        self.assertEqual(self.client.get(f"/api/v1/work-sessions/{sid}/chat-messages", headers=owner).json(), [])
+
+    def test_session_chat_log_needs_own_farm(self) -> None:
+        farm, other = make_farm(), make_farm()
+        sid = self.start_work(farm, login(self.client, farm, farm.worker_id))
+        r = self.client.get(f"/api/v1/work-sessions/{sid}/chat-messages",
+                            headers=login(self.client, other, other.worker_id))
+        self.assertEqual((r.status_code, r.json()["error"]["code"]), (404, "session_not_found"))
 
     def test_tools_only_see_own_farm(self) -> None:
         farm, other = make_farm(), make_farm()
@@ -173,10 +226,39 @@ class VoiceNoteTests(unittest.TestCase):
             "client_event_id": str(uuid4()), "plot_id": farm.plot_ids[1], "work_type": "摘果・摘葉",
             "started_at": "2026-10-04T08:00:00+09:00"}).json()["id"]
 
-    def upload(self, headers, sid, event_id, content_type="audio/mp4", transcript="奥の枝の実は日が当たりにくい。"):
+    def upload(self, headers, sid, event_id, content_type="audio/mp4", transcript="奥の枝の実は日が当たりにくい。", **extra):
         return self.client.post(f"/api/v1/work-sessions/{sid}/voice-notes", headers=headers,
-                                data={"client_event_id": event_id, "transcript": transcript},
+                                data={"client_event_id": event_id, "transcript": transcript, **extra},
                                 files={"file": ("note.m4a", b"fake-audio", content_type)})
+
+    def test_keeps_recorded_at_from_device(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        sid = self.start(farm, headers)
+        r = self.upload(headers, sid, str(uuid4()), recorded_at="2026-10-04T11:40:00+09:00")
+        self.assertEqual(r.status_code, 201)
+        listed = self.client.get(f"/api/v1/work-sessions/{sid}/voice-notes", headers=headers).json()
+        expected = datetime.fromisoformat("2026-10-04T11:40:00+09:00")
+        for note in (r.json(), listed[0]):
+            self.assertEqual(datetime.fromisoformat(note["recorded_at"]), expected)
+
+    def test_recorded_at_defaults_to_server_time(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        r = self.upload(headers, self.start(farm, headers), str(uuid4())).json()
+        self.assertEqual(r["recorded_at"], r["created_at"])
+
+    def test_rejects_recorded_at_without_timezone(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        r = self.upload(headers, self.start(farm, headers), str(uuid4()), recorded_at="2026-10-04T11:40:00")
+        self.assertEqual(r.status_code, 422)
+
+    def test_only_session_owner_can_upload(self) -> None:
+        farm = make_farm()
+        sid = self.start(farm, login(self.client, farm, farm.worker_id))
+        r = self.upload(login(self.client, farm, farm.owner_id), sid, str(uuid4()))
+        self.assertEqual((r.status_code, r.json()["error"]["code"]), (403, "not_your_session"))
 
     def test_upload_saves_transcript_and_adds_knowledge(self) -> None:
         farm = make_farm()

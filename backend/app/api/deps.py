@@ -42,3 +42,11 @@ def get_plot_in_farm(db: Session, plot_id: int, farm_id: int) -> Plot:
     if plot is None or plot.farm_id != farm_id:
         api_error(404, "plot_not_found", "農園が見つかりません")
     return plot
+
+
+def get_active_plot_in_farm(db: Session, plot_id: int, farm_id: int) -> Plot:
+    """新しい予定・作業に使う農地。削除（停止）した農地も、存在しないものとして扱う。"""
+    plot = get_plot_in_farm(db, plot_id, farm_id)
+    if not plot.active:
+        api_error(404, "plot_not_found", "農園が見つかりません")
+    return plot

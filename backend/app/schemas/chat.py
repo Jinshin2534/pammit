@@ -32,6 +32,10 @@ class Message(BaseModel):
     created_at: datetime
 
 
+class SessionChatMessage(Message):
+    thread_id: int
+
+
 class KnowledgeIn(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     body: str = Field(min_length=1)
@@ -49,4 +53,5 @@ class VoiceNote(BaseModel):
     id: int
     session_id: int
     transcript: str | None = Field(default=None, description="スマートフォンで文字に起こした内容")
-    created_at: datetime
+    recorded_at: datetime = Field(description="端末で録音した時刻。送られなかったときはサーバーが受け取った時刻")
+    created_at: datetime = Field(description="サーバーが受け取った時刻")

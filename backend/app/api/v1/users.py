@@ -19,7 +19,12 @@ def _get_user_in_farm(db: Session, user_id: int, farm_id: int) -> User:
     return user
 
 
-@router.get("", response_model=list[UserOut], summary="作業者の一覧（管理者）")
+@router.get(
+    "",
+    response_model=list[UserOut],
+    summary="作業者の一覧（管理者）",
+    description="owner と停止中の人も含めて返す。画面に出す人は `role`・`active` で絞る。",
+)
 def list_users(owner: User = Depends(owner_user), db: Session = Depends(get_db)) -> list[User]:
     return list(db.scalars(select(User).where(User.farm_id == owner.farm_id).order_by(User.id)))
 
@@ -39,7 +44,15 @@ def create_user(body: UserCreate, owner: User = Depends(owner_user), db: Session
     return UserWithPin(user=UserOut.model_validate(user), pin=pin)
 
 
-@router.patch("/{user_id}", response_model=UserOut, summary="作業者の情報を変える（管理者）")
+@router.patch(
+    "/{user_id}",
+    response_model=UserOut,
+    summary="作業者の情報を変える（管理者）",
+    description=(
+        "作業者の削除は `active: false`（停止）で行う。ログインできなくなり、新しい予定の担当者にも選べなくなる。"
+        "過去の予定・作業ログには名前を残す。"
+    ),
+)
 def update_user(
     user_id: int, body: UserUpdate, owner: User = Depends(owner_user), db: Session = Depends(get_db)
 ) -> User:

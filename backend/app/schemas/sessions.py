@@ -14,7 +14,7 @@ class ConfidenceThresholds(BaseModel):
 
 
 class SessionConfig(BaseModel):
-    """判定に使う設定。帽子で判定する作業のときだけ返す。
+    """判定に使う設定。帽子を使って判定する作業（摘果・摘葉、収穫）のときだけ返す。
 
     値は DB の `judgment_params` から作る。アプリは作業の間これを使って判定する。
     """
@@ -27,7 +27,10 @@ class SessionConfig(BaseModel):
 class WorkSessionCreate(IdempotentCreate):
     plot_id: int
     work_type: WorkType
-    schedule_id: int | None = Field(default=None, description="予定から始めたときの予定ID")
+    schedule_id: int | None = Field(
+        default=None, description="予定から始めたときの予定ID。担当者が何人いても、作業は1人ずつ同じ予定IDで始める")
+    uses_hat: bool = Field(
+        default=True, description="帽子を使うか。偽なら判定する作業（摘果・摘葉、収穫）でも判定の設定を返さない")
     started_at: datetime
 
 
@@ -38,9 +41,10 @@ class WorkSession(BaseModel):
     work_type: WorkType
     user_id: int
     schedule_id: int | None = None
+    uses_hat: bool
     started_at: datetime
     ended_at: datetime | None = None
-    config: SessionConfig | None = Field(default=None, description="帽子で判定しない作業では null")
+    config: SessionConfig | None = Field(default=None, description="判定しない作業と、帽子を使わない作業では null")
 
 
 class WorkSessionFinish(BaseModel):

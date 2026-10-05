@@ -7,7 +7,6 @@ from sqlalchemy import (
     JSON,
     Boolean,
     Date,
-    DateTime,
     Float,
     ForeignKey,
     Integer,
@@ -18,6 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,8 +38,8 @@ class SensorDevice(Base):
     plot_id: Mapped[int | None] = mapped_column(Integer, index=True)
     key_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
     dev_eui: Mapped[str | None] = mapped_column(String(16), unique=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
+    last_seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
 
 
 class SensorReading(Base):
@@ -50,8 +50,8 @@ class SensorReading(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     sensor_device_id: Mapped[int] = mapped_column(ForeignKey("sensor_devices.id"))
-    measured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    measured_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    received_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
     source: Mapped[str] = mapped_column(String(10))  # 'wifi' | 'lorawan'
     temperature: Mapped[float | None] = mapped_column(Float)
     humidity: Mapped[float | None] = mapped_column(Float)
@@ -113,6 +113,8 @@ class Plot(Base):
     soil_check_pct: Mapped[float] = mapped_column(Float, default=28.0)
     soil_dry_raw: Mapped[int | None] = mapped_column(Integer)
     soil_wet_raw: Mapped[int | None] = mapped_column(Integer)
+    # 偽にすると一覧から消え、新しい予定・作業には使えない。過去の予定・作業ログには名前を残す
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
 
 
@@ -151,6 +153,7 @@ class Schedule(Base):
 
     plot: Mapped[Plot] = relationship(lazy="joined")
     assignees: Mapped[list["User"]] = relationship(secondary="schedule_assignees", lazy="selectin", order_by="User.id")
+    creator: Mapped["User"] = relationship(foreign_keys=[created_by], lazy="joined")
 
 
 class ScheduleAssignee(Base):
@@ -174,6 +177,8 @@ class WorkSession(Base):
     work_type: Mapped[str] = mapped_column(String(20))
     started_at: Mapped[datetime] = mapped_column(UTCDateTime)
     ended_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    # 帽子を使わずに始めた作業は偽。判定の設定は配らない
+    uses_hat: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     # 開始時に配った判定の設定。あとから閾値を変えても、どの設定で判定したか分かる
     config_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     received_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
@@ -309,6 +314,8 @@ class VoiceNote(Base):
     transcript: Mapped[str | None] = mapped_column(Text)
     transcribed_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     knowledge_document_id: Mapped[int | None] = mapped_column(ForeignKey("knowledge_documents.id"))
+    # 端末で録音した時刻。通信が切れていたときは created_at（受け取った時刻）より前になる
+    recorded_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
 
 

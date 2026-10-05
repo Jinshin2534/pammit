@@ -14,6 +14,9 @@ from app.services import llm
 from app.services.field import field_summary
 from app.services.weather import forecast_for, weather_word
 
+# 今日のひとことで農地の名前を挙げて知らせる助言
+NEEDS_CHECK_RULES = ("below_now", "below_tomorrow", "hot_and_drying")
+
 SYSTEM = (
     "あなたはすだち農家の作業を手伝うアシスタントです。"
     "渡された材料だけを使い、今日の作業についてのひとことを日本語で書きます。"
@@ -25,7 +28,7 @@ SYSTEM = (
 
 
 def build_context(db: Session, farm: Farm, day: date) -> dict:
-    plots = list(db.scalars(select(Plot).where(Plot.farm_id == farm.id).order_by(Plot.id)))
+    plots = list(db.scalars(select(Plot).where(Plot.farm_id == farm.id, Plot.active.is_(True)).order_by(Plot.id)))
     schedules = list(db.scalars(
         select(Schedule).where(Schedule.farm_id == farm.id, Schedule.date == day).order_by(Schedule.start_time)))
     weather = forecast_for(db, plots[0].id, day) if plots else None
@@ -41,7 +44,8 @@ def build_context(db: Session, farm: Farm, day: date) -> dict:
             for s in schedules
         ],
         "fields": [
-            {"plot": f["plot_name"], "soil_moisture_pct": f["soil_moisture_pct"], "advice": f["advice"]["message"]}
+            {"plot": f["plot_name"], "soil_moisture_pct": f["soil_moisture_pct"], "advice": f["advice"]["message"],
+             "needs_check": f["advice"]["rule"] in NEEDS_CHECK_RULES}
             for f in (field_summary(db, p) for p in plots)
         ],
     }
@@ -49,7 +53,7 @@ def build_context(db: Session, farm: Farm, day: date) -> dict:
 
 def fallback_text(context: dict) -> tuple[str, str]:
     schedules = context["schedules"]
-    needs_check = [f for f in context["fields"] if "確認" in f["advice"]]
+    needs_check = [f for f in context["fields"] if f.get("needs_check")]
     if schedules:
         first = schedules[0]
         summary = f"今日は{first['plot']}で{'・'.join(first['work_types'])}の予定です。"

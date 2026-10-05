@@ -4,6 +4,7 @@ PostgreSQL 16（pgvector 拡張）を使う。`detections`・`evaluation_runs` �
 
 時刻はタイムゾーン付きで保存し、端末の時刻とサーバーの受信時刻を分けて持つ。
 書き込みの重複は、端末が作る `client_event_id` の一意制約で防ぐ。
+テーブルは起動時に作る。既存のテーブルに列を足したら、`backend/app/db.py` の `ADDED_COLUMNS` にも書く（起動時に、なければ足す）。
 
 ```mermaid
 erDiagram
@@ -30,13 +31,21 @@ erDiagram
 | テーブル | 主な列 | 備考 |
 |---|---|---|
 | `farms` | `code`, `name` | 経営体 |
-| `users` | `farm_id`, `name`, `role`, `gender`, `worker_type`, `weekly_max_hours`, `pin_hash`, `failed_pin_count`, `locked_until`, `icon`, `active` | `role` は `owner` / `worker`。`active` が偽の人は停止中 |
+| `users` | `farm_id`, `name`, `role`, `gender`, `worker_type`, `weekly_max_hours`, `pin_hash`, `failed_pin_count`, `locked_until`, `icon`, `active` | `role` は `owner` / `worker`。`active` が偽の人は停止中（作業者の削除はこれで行う） |
+
+利用者の項目で選べる値は画面に合わせ、サーバーもこれ以外は受け付けない。
+
+| 列 | 値 |
+|---|---|
+| `gender` | `女` / `男` / `回答しない` |
+| `worker_type` | `後継者さん` / `アルバイト`。`owner` は持たない（空） |
+| `icon` | `default` / `hat` / `scarf` / `glasses`。空は `default` と同じ |
 
 ## 農地
 
 | テーブル | 主な列 | 備考 |
 |---|---|---|
-| `plots` | `farm_id`, `name`, `municipality`, `latitude`, `longitude`, `cultivation_type`, `soil_check_pct`, `soil_dry_raw`, `soil_wet_raw` | 作業する場所。画面では「農園」と表示する。`cultivation_type` は `house` / `open_field`（既定は `open_field`）。`soil_*` は土壌水分の換算と助言に使う |
+| `plots` | `farm_id`, `name`, `municipality`, `latitude`, `longitude`, `cultivation_type`, `soil_check_pct`, `soil_dry_raw`, `soil_wet_raw`, `active` | 作業する場所。画面では「農園」と表示する。`cultivation_type` は `house` / `open_field`（既定は `open_field`）。`soil_*` は土壌水分の換算と助言に使う。`active` が偽の農地は削除済み（一覧に出さず、過去の記録には名前を残す） |
 
 ## 予定と作業
 
@@ -44,10 +53,10 @@ erDiagram
 |---|---|---|
 | `schedules` | `client_event_id`, `farm_id`, `plot_id`, `date`, `start_time`, `end_time`, `work_types`, `note`, `created_by` | 人が入力する予定 |
 | `schedule_assignees` | `schedule_id`, `user_id` | 担当者（複数） |
-| `work_sessions` | `client_event_id`, `farm_id`, `plot_id`, `user_id`, `work_type`, `schedule_id`, `started_at`, `ended_at`, `config_snapshot` | 作業1回分。開始時に配った判定設定を `config_snapshot` に残す |
+| `work_sessions` | `client_event_id`, `farm_id`, `plot_id`, `user_id`, `work_type`, `schedule_id`, `uses_hat`, `started_at`, `ended_at`, `config_snapshot` | 作業1回分。開始時に配った判定設定を `config_snapshot` に残す。`uses_hat` が偽なら帽子なしで始めた作業で、`config_snapshot` は空。1つの予定から担当者ごとに作業ができる |
 | `detections` | `client_event_id`, `session_id`, `detected_at`, `verdict`, `model_version` ほか | 判定1件。列は [ai.md](ai.md) の検討結果に合わせて決める |
 | `work_logs` | `farm_id`, `session_id`, `plot_id`, `user_id`, `work_type`, `worked_on`, `started_at`, `ended_at` | セッションの終了時に自動で作る |
-| `voice_notes` | `client_event_id`, `session_id`, `user_id`, `storage_key`, `transcript`, `transcribed_at`, `knowledge_document_id` | 「今日の気づき」。音声は S3 に置く。文字はスマートフォンで起こしたものを受け取り、知識にも加える |
+| `voice_notes` | `client_event_id`, `session_id`, `user_id`, `storage_key`, `transcript`, `transcribed_at`, `knowledge_document_id`, `recorded_at`, `created_at` | 「今日の気づき」。音声は S3 に置く。文字はスマートフォンで起こしたものを受け取り、知識にも加える。`recorded_at` は端末で録音した時刻、`created_at` はサーバーが受け取った時刻 |
 | `judgment_params` | `farm_id`, `work_type`, `params` | 判定の閾値。セッション開始時にアプリへ配る |
 
 作業の種類は `剪定` `灌水` `肥料` `摘果・摘葉` `収穫` `防除` `草刈り` `その他` の8つ。

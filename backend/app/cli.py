@@ -46,9 +46,10 @@ SEED_PLOTS = [
     {"name": "ましろん農園", "municipality": "神山町", "cultivation_type": "open_field"},
     {"name": "三番ハウス", "municipality": "神山町", "cultivation_type": "house"},
 ]
+# worker_type は画面で選べる値（app/schemas/auth.py の WorkerType）にそろえる。owner は持たない
 SEED_USERS = [
-    {"name": "近未来 すだち子", "role": "owner", "worker_type": "農家"},
-    {"name": "長谷川 真白", "role": "worker", "worker_type": "後継者"},
+    {"name": "近未来 すだち子", "role": "owner"},
+    {"name": "長谷川 真白", "role": "worker", "worker_type": "後継者さん"},
     {"name": "野﨑 仁心", "role": "worker", "worker_type": "アルバイト"},
     {"name": "永田 雄也", "role": "worker", "worker_type": "アルバイト"},
     {"name": "大久保 杏南", "role": "worker", "worker_type": "アルバイト"},
