@@ -7,6 +7,8 @@ export * from './schedules';
 export * from './work-outbox';
 export * from './chat';
 export * from './field';
+export * from './journals';
+export * from './users';
 export * from './work-sessions';
 export { apiRequest } from './client';
 export type * from './types';

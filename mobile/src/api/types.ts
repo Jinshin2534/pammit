@@ -29,3 +29,14 @@ export type SensorReadingOut = Schemas['SensorReadingOut'];
 
 export type ChatThread = Schemas['Thread'];
 export type ChatMessage = Schemas['Message'];
+export type UserOut = Schemas['UserOut'];
+export type UserCreate = Schemas['UserCreate'];
+export type UserUpdate = Schemas['UserUpdate'];
+export type UserWithPin = Schemas['UserWithPin'];
+
+export type PlotCreate = Schemas['PlotCreate'];
+export type PlotUpdate = Schemas['PlotUpdate'];
+
+export type JournalDay = Schemas['JournalDay'];
+export type JournalWork = Schemas['JournalWork'];
+export type JournalExport = Schemas['JournalExport'];
