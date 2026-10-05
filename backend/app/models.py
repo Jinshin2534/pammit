@@ -18,6 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -174,6 +175,8 @@ class WorkSession(Base):
     work_type: Mapped[str] = mapped_column(String(20))
     started_at: Mapped[datetime] = mapped_column(UTCDateTime)
     ended_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    # 帽子を使わずに始めた作業は偽。判定の設定は配らない
+    uses_hat: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     # 開始時に配った判定の設定。あとから閾値を変えても、どの設定で判定したか分かる
     config_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     received_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
@@ -309,6 +312,8 @@ class VoiceNote(Base):
     transcript: Mapped[str | None] = mapped_column(Text)
     transcribed_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     knowledge_document_id: Mapped[int | None] = mapped_column(ForeignKey("knowledge_documents.id"))
+    # 端末で録音した時刻。通信が切れていたときは created_at（受け取った時刻）より前になる
+    recorded_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
 
 

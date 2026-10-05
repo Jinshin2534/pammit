@@ -5,6 +5,8 @@ PostgreSQL 16（pgvector 拡張）を使う。`detections`・`evaluation_runs` �
 時刻はタイムゾーン付きで保存し、端末の時刻とサーバーの受信時刻を分けて持つ。
 書き込みの重複は、端末が作る `client_event_id` の一意制約で防ぐ。
 
+テーブルは起動時に作る。既存のテーブルにあとから足した列（`work_sessions.uses_hat`、`voice_notes.recorded_at`）は、起動時に列がなければ足す（`backend/app/db.py` の `ADDED_COLUMNS`）。
+
 ```mermaid
 erDiagram
     farms ||--o{ users : has
@@ -44,10 +46,10 @@ erDiagram
 |---|---|---|
 | `schedules` | `client_event_id`, `farm_id`, `plot_id`, `date`, `start_time`, `end_time`, `work_types`, `note`, `created_by` | 人が入力する予定 |
 | `schedule_assignees` | `schedule_id`, `user_id` | 担当者（複数） |
-| `work_sessions` | `client_event_id`, `farm_id`, `plot_id`, `user_id`, `work_type`, `schedule_id`, `started_at`, `ended_at`, `config_snapshot` | 作業1回分。開始時に配った判定設定を `config_snapshot` に残す |
+| `work_sessions` | `client_event_id`, `farm_id`, `plot_id`, `user_id`, `work_type`, `schedule_id`, `uses_hat`, `started_at`, `ended_at`, `config_snapshot` | 作業1回分。開始時に配った判定設定を `config_snapshot` に残す。`uses_hat` が偽なら帽子なしで始めた作業で、`config_snapshot` は空。1つの予定から担当者ごとに作業ができる |
 | `detections` | `client_event_id`, `session_id`, `detected_at`, `verdict`, `model_version` ほか | 判定1件。列は [ai.md](ai.md) の検討結果に合わせて決める |
 | `work_logs` | `farm_id`, `session_id`, `plot_id`, `user_id`, `work_type`, `worked_on`, `started_at`, `ended_at` | セッションの終了時に自動で作る |
-| `voice_notes` | `client_event_id`, `session_id`, `user_id`, `storage_key`, `transcript`, `transcribed_at`, `knowledge_document_id` | 「今日の気づき」。音声は S3 に置く。文字はスマートフォンで起こしたものを受け取り、知識にも加える |
+| `voice_notes` | `client_event_id`, `session_id`, `user_id`, `storage_key`, `transcript`, `transcribed_at`, `knowledge_document_id`, `recorded_at`, `created_at` | 「今日の気づき」。音声は S3 に置く。文字はスマートフォンで起こしたものを受け取り、知識にも加える。`recorded_at` は端末で録音した時刻、`created_at` はサーバーが受け取った時刻 |
 | `judgment_params` | `farm_id`, `work_type`, `params` | 判定の閾値。セッション開始時にアプリへ配る |
 
 作業の種類は `剪定` `灌水` `肥料` `摘果・摘葉` `収穫` `防除` `草刈り` `その他` の8つ。
