@@ -1,7 +1,9 @@
 """農園画面と今日のひとこと。"""
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from pydantic import BaseModel, Field
+
+from app.schemas.plots import WorkType
 
 
 class TomorrowWeather(BaseModel):
@@ -18,13 +20,16 @@ class AdviceOut(BaseModel):
 
 
 class SuggestedSchedule(BaseModel):
-    """「確認を明日の予定に追加」で `POST /schedules` に送る中身（`client_event_id` と担当を足して送る）。"""
+    """「確認を明日の予定に追加」で開く予定入力画面の初期値。担当は空にしておく。
+
+    型は `POST /schedules` と同じ。アプリは入力画面で確かめてもらってから、`client_event_id` を足して送る。
+    """
 
     plot_id: int
     date: date
-    start_time: str
-    end_time: str
-    work_types: list[str]
+    start_time: time = Field(examples=["08:00"])
+    end_time: time = Field(examples=["09:00"])
+    work_types: list[WorkType]
     note: str
 
 

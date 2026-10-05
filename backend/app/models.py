@@ -151,6 +151,7 @@ class Schedule(Base):
 
     plot: Mapped[Plot] = relationship(lazy="joined")
     assignees: Mapped[list["User"]] = relationship(secondary="schedule_assignees", lazy="selectin", order_by="User.id")
+    creator: Mapped["User"] = relationship(foreign_keys=[created_by], lazy="joined")
 
 
 class ScheduleAssignee(Base):

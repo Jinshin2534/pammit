@@ -1,10 +1,12 @@
 import unittest
+from datetime import date
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.db import init_db
+from app.db import SessionLocal, init_db
 from app.main import app
+from app.models import Schedule, User
 from tests.helpers import login, make_farm
 
 T0 = "2026-10-04T08:00:00+09:00"
@@ -145,11 +147,100 @@ class ScheduleTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/v1/schedules", headers=headers,
                                          params={"from": "2026-10-10", "to": "2026-10-10"}).json(), [])
 
-    def test_rejects_end_before_start(self) -> None:
+    def create(self, farm, user_id, **overrides):
+        r = self.client.post("/api/v1/schedules", headers=login(self.client, farm, user_id), json=self.body(farm, **overrides))
+        self.assertEqual(r.status_code, 201, r.text)
+        return r.json()
+
+    def deactivate(self, user_id) -> None:
+        with SessionLocal() as db:
+            db.get(User, user_id).active = False
+            db.commit()
+
+    def test_returns_creator(self) -> None:
         farm = make_farm()
-        r = self.client.post("/api/v1/schedules", headers=login(self.client, farm, farm.worker_id),
-                             json=self.body(farm, start_time="12:00", end_time="09:00"))
-        self.assertEqual(r.status_code, 422)
+        created = self.create(farm, farm.worker_id)
+        self.assertEqual(created["created_by"], {"id": farm.worker_id, "name": "作業者"})
+        listed = self.client.get("/api/v1/schedules", headers=login(self.client, farm, farm.owner_id),
+                                 params={"from": "2026-10-10", "to": "2026-10-10"}).json()
+        self.assertEqual(listed[0]["created_by"]["id"], farm.worker_id)
+
+    def test_only_creator_and_owner_can_change(self) -> None:
+        farm = make_farm()
+        with SessionLocal() as db:
+            other = User(farm_id=farm.farm_id, name="別の作業者", role="worker", pin_hash=db.get(User, farm.worker_id).pin_hash)
+            db.add(other)
+            db.commit()
+            other_id = other.id
+        by_owner = self.create(farm, farm.owner_id)
+        by_worker = self.create(farm, farm.worker_id)
+        stranger = login(self.client, farm, other_id)
+        for sid in (by_owner["id"], by_worker["id"]):
+            r = self.client.patch(f"/api/v1/schedules/{sid}", headers=stranger, json={"note": "x"})
+            self.assertEqual((r.status_code, r.json()["error"]["code"]), (403, "not_your_schedule"))
+            self.assertEqual(self.client.delete(f"/api/v1/schedules/{sid}", headers=stranger).status_code, 403)
+        # 担当者でも、作っていなければ変えられない
+        worker = login(self.client, farm, farm.worker_id)
+        self.assertEqual(self.client.patch(f"/api/v1/schedules/{by_owner['id']}", headers=worker,
+                                           json={"note": "x"}).status_code, 403)
+        # owner は人が作った予定も変えて消せる
+        owner = login(self.client, farm, farm.owner_id)
+        r = self.client.patch(f"/api/v1/schedules/{by_worker['id']}", headers=owner, json={"note": "変更"})
+        self.assertEqual((r.status_code, r.json()["created_by"]["id"]), (200, farm.worker_id))
+        self.assertEqual(self.client.delete(f"/api/v1/schedules/{by_worker['id']}", headers=owner).status_code, 204)
+
+    def test_times_are_required(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        for missing in ("start_time", "end_time"):
+            body = self.body(farm)
+            del body[missing]
+            self.assertEqual(self.client.post("/api/v1/schedules", headers=headers, json=body).status_code, 422)
+        sid = self.create(farm, farm.worker_id)["id"]
+        for field in ("start_time", "end_time"):
+            r = self.client.patch(f"/api/v1/schedules/{sid}", headers=headers, json={field: None})
+            self.assertEqual(r.status_code, 422)
+
+    def test_reads_old_schedule_without_times(self) -> None:
+        farm = make_farm()
+        with SessionLocal() as db:
+            db.add(Schedule(client_event_id=uuid4(), farm_id=farm.farm_id, plot_id=farm.plot_ids[0],
+                            date=date(2026, 10, 11), work_types=["収穫"], created_by=farm.worker_id))
+            db.commit()
+        headers = login(self.client, farm, farm.worker_id)
+        listed = self.client.get("/api/v1/schedules", headers=headers, params={"from": "2026-10-11", "to": "2026-10-11"})
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual((listed.json()[0]["start_time"], listed.json()[0]["end_time"]), (None, None))
+        # 時刻のない予定も、時刻以外を変えられる
+        r = self.client.patch(f"/api/v1/schedules/{listed.json()[0]['id']}", headers=headers, json={"note": "x"})
+        self.assertEqual(r.status_code, 200)
+
+    def test_rejects_end_before_start_with_one_code(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        r = self.client.post("/api/v1/schedules", headers=headers, json=self.body(farm, start_time="12:00", end_time="09:00"))
+        self.assertEqual((r.status_code, r.json()["error"]["code"]), (422, "invalid_time_range"))
+        sid = self.create(farm, farm.worker_id)["id"]
+        r = self.client.patch(f"/api/v1/schedules/{sid}", headers=headers, json={"end_time": "07:00"})
+        self.assertEqual((r.status_code, r.json()["error"]["code"]), (422, "invalid_time_range"))
+
+    def test_rejects_inactive_assignee(self) -> None:
+        farm = make_farm()
+        sid = self.create(farm, farm.owner_id, assignee_ids=[farm.worker_id])["id"]
+        self.deactivate(farm.worker_id)
+        owner = login(self.client, farm, farm.owner_id)
+        r = self.client.post("/api/v1/schedules", headers=owner, json=self.body(farm, assignee_ids=[farm.worker_id]))
+        self.assertEqual((r.status_code, r.json()["error"]["code"]), (422, "inactive_assignee"))
+        # すでに担当の予定には名前が残り、残したままほかを変えられる
+        listed = self.client.get("/api/v1/schedules", headers=owner, params={"from": "2026-10-10", "to": "2026-10-10"}).json()
+        self.assertEqual([a["id"] for a in listed[0]["assignees"]], [farm.worker_id])
+        r = self.client.patch(f"/api/v1/schedules/{sid}", headers=owner,
+                              json={"assignee_ids": [farm.worker_id, farm.owner_id]})
+        self.assertEqual([a["id"] for a in r.json()["assignees"]], sorted([farm.worker_id, farm.owner_id]))
+        # 外したあとに加え直すことはできない
+        self.client.patch(f"/api/v1/schedules/{sid}", headers=owner, json={"assignee_ids": [farm.owner_id]})
+        r = self.client.patch(f"/api/v1/schedules/{sid}", headers=owner, json={"assignee_ids": [farm.worker_id]})
+        self.assertEqual((r.status_code, r.json()["error"]["code"]), (422, "inactive_assignee"))
 
     def test_rejects_assignee_from_other_farm(self) -> None:
         farm, other = make_farm(), make_farm()

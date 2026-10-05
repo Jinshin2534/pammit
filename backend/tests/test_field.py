@@ -76,9 +76,11 @@ class FieldApiTests(unittest.TestCase):
         self.assertEqual(s["tomorrow"]["weather"], "晴れ")
         self.assertEqual(s["suggested_schedule"]["date"], tomorrow.isoformat())
 
+        # 提案はそのまま予定の登録に使える形。担当は空で作る
+        r = self.client.post("/api/v1/schedules", headers=headers, json={
+            "client_event_id": str(uuid4()), **s["suggested_schedule"]})
+        self.assertEqual((r.status_code, r.json()["assignees"]), (201, []))
         # 明日すでに灌水の予定があれば、予定への追加は出さない
-        self.client.post("/api/v1/schedules", headers=headers, json={
-            "client_event_id": str(uuid4()), **s["suggested_schedule"], "assignee_ids": [farm.worker_id]})
         again = self.client.get(f"/api/v1/plots/{plot_id}/field-summary", headers=headers).json()
         self.assertIsNone(again["suggested_schedule"])
 
@@ -116,7 +118,7 @@ class DailyAdviceTests(unittest.TestCase):
         today = datetime.now(JST).date()
         self.client.post("/api/v1/schedules", headers=headers, json={
             "client_event_id": str(uuid4()), "plot_id": farm.plot_ids[1], "date": today.isoformat(),
-            "start_time": "08:00", "work_types": ["収穫"], "assignee_ids": [farm.worker_id]})
+            "start_time": "08:00", "end_time": "11:00", "work_types": ["収穫"], "assignee_ids": [farm.worker_id]})
         first = self.client.get("/api/v1/daily-advice", headers=headers).json()
         second = self.client.get("/api/v1/daily-advice", headers=headers).json()
         self.assertEqual(first["summary"], "今日は三番ハウスで収穫の予定です。")
