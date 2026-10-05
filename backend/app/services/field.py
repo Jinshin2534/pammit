@@ -55,29 +55,88 @@ def _forecast_pct(points: list[tuple[datetime, float]], at: datetime) -> float |
     return round(min(max(value, 0.0), 100.0), 1)
 
 
+# 24時間でこれ以上下がっていたら「乾燥傾向」とする（ポイント）。仮の値
+DRYING_DROP_PT = 3.0
+
+
+def is_drying(change_24h: float | None) -> bool:
+    return change_24h is not None and change_24h <= -DRYING_DROP_PT
+
+
+def _n(v: float) -> str:
+    return f"{v:g}"
+
+
 @dataclass
 class Advice:
     rule: str
-    message: str
+    category: str  # 区分ラベル（例: 水管理・様子を見ましょう）
+    headline: str  # 見出し。助言の結論
+    detail: str  # 補足。理由と、いつ何を確かめるか
     suggest_check: bool  # 「確認を明日の予定に追加」を出すか
+
+    @property
+    def message(self) -> str:
+        """見出しと補足をつないだ1文。互換のため残す（AI 相談と今日のひとことの材料）。"""
+        return f"{self.headline}。{self.detail}"
+
+
+WAIT = "水管理・様子を見ましょう"
 
 
 def decide_advice(
     *, current: float | None, forecast: float | None, change_24h: float | None, check_pct: float,
     rain_mm: float | None, temp_max: float | None, month: int, rain_skip_mm: float, hot_temp_c: float,
+    calibrated: bool = True,
 ) -> Advice:
-    """上から順に判定し、最初に当てはまったものを返す。"""
+    """上から順に判定し、最初に当てはまったものを返す。言い方は確認を促す形に限り、灌水量は断定しない。"""
+    c = _n(check_pct)
+    if not calibrated:
+        return Advice("not_calibrated", "水管理・設定が必要", "土壌水分が校正されていません",
+                      "農地の設定で乾燥時と飽和時の値を入れると、灌水の目安を出します。", False)
     if current is None:
-        return Advice("no_data", "土壌水分のデータがまだありません。", False)
+        return Advice("no_data", "水管理・データなし", "土壌水分のデータがまだありません",
+                      "センサーから測定値が届くと、灌水の目安を出します。", False)
     if rain_mm is not None and rain_mm >= rain_skip_mm and current >= check_pct:
-        return Advice("rain", "明日は雨の予報です。今すぐの灌水は必要なさそうです。", False)
+        return Advice("rain_expected", WAIT, "今すぐの灌水は必要なさそうです",
+                      f"明日は{_n(rain_mm)}mmの雨の予報です。雨のあとに土の状態を確認しましょう。", False)
     if current < check_pct:
-        return Advice("below_now", "土が乾き気味です。今日中に土の状態を確認しましょう。", True)
-    if forecast is not None and forecast < check_pct and (rain_mm is None or rain_mm < rain_skip_mm):
-        return Advice("below_tomorrow", "明日には目安を下回りそうです。明日午前に土の状態を確認しましょう。", True)
+        return Advice("below_now", "水管理・今日中に確認", "今日中に土の状態を確認しましょう",
+                      f"土が乾き気味です。目安の{c}%を下回っています。", True)
+    # 明日の雨が多い場合は上の rain_expected で返しているので、ここでは雨を見ない
+    if forecast is not None and forecast < check_pct:
+        return Advice("below_tomorrow", "水管理・明日確認", "明日午前に土の状態を確認しましょう",
+                      f"乾燥が進んでいます。明日には目安の{c}%を下回りそうです。", True)
     if 6 <= month <= 9 and change_24h is not None and change_24h < 0 and temp_max is not None and temp_max >= hot_temp_c:
-        return Advice("hot_and_drying", "暑く乾きやすい日が続いています。晴天が1週間続く場合は灌水を検討しましょう。", True)
-    return Advice("ok", "今すぐの灌水は必要なさそうです。", False)
+        return Advice("hot_and_drying", "水管理・暑さに注意", "晴天が1週間続く場合は灌水を検討しましょう",
+                      f"明日の最高気温は{_n(temp_max)}℃の予報で、土が乾いてきています。土の状態を確認しましょう。", True)
+    if is_drying(change_24h):
+        return Advice("ok", WAIT, "今すぐの灌水は必要なさそうです",
+                      "乾燥が進んでいます。明日午前に土の状態を確認しましょう。", False)
+    return Advice("ok", WAIT, "今すぐの灌水は必要なさそうです", f"土壌水分は目安の{c}%を上回っています。", False)
+
+
+def soil_note(advice: Advice, *, drying: bool, check_pct: float, forecast: float | None) -> dict | None:
+    """データ推移の土壌水分タブに出す解説。土壌水分の値がないときは出さない。"""
+    c = _n(check_pct)
+    if advice.rule in ("no_data", "not_calibrated"):
+        return None
+    if advice.rule == "below_now":
+        return {"headline": "今日のうちに、確認のタイミング",
+                "body": f"目安の{c}%を下回っています。土の状態を見て灌水を検討しましょう。"}
+    if advice.rule == "below_tomorrow":
+        return {"headline": "明日午前は、確認のタイミング",
+                "body": f"乾燥が続くと、目安の{c}%を下回る予測。土の状態を見て灌水を検討しましょう。"}
+    if advice.rule == "rain_expected":
+        return {"headline": "明日は雨の予報",
+                "body": "雨のあとに土の状態を見て、灌水するか決めましょう。"}
+    if advice.rule == "hot_and_drying":
+        return {"headline": "暑さで乾きやすい時期",
+                "body": "晴天が1週間続く場合は、土の状態を見て灌水を検討しましょう。"}
+    if drying:
+        tail = f"明日も目安の{c}%は上回る予測。" if forecast is not None else f"今は目安の{c}%を上回っています。"
+        return {"headline": "乾燥が進んでいます", "body": tail + "明日午前に土の状態を確認しましょう。"}
+    return {"headline": "落ち着いています", "body": f"目安の{c}%を上回っています。いつもどおり様子を見ましょう。"}
 
 
 def field_summary(db: Session, plot: Plot, now: datetime | None = None) -> dict:
@@ -96,11 +155,16 @@ def field_summary(db: Session, plot: Plot, now: datetime | None = None) -> dict:
 
     settings_row = db.get(IrrigationSettings, plot.id) or IrrigationSettings(rain_skip_mm=10.0, hot_temp_c=33.0)
     weather = forecast_for(db, plot.id, tomorrow)
+    calibrated = plot.soil_dry_raw is not None and plot.soil_wet_raw is not None
     advice = decide_advice(
         current=current, forecast=forecast, change_24h=change_24h, check_pct=plot.soil_check_pct,
         rain_mm=weather.precip_mm if weather else None, temp_max=weather.temp_max if weather else None,
         month=today.month, rain_skip_mm=settings_row.rain_skip_mm, hot_temp_c=settings_row.hot_temp_c,
+        calibrated=calibrated,
     )
+    drying = is_drying(change_24h)
+    has_sensor = db.scalar(select(SensorDevice.id).where(SensorDevice.plot_id == plot.id).limit(1)) is not None
+    last_measured_at = latest.measured_at if latest else _last_measured_at(db, plot.id)
     irrigation_planned = _irrigation_planned(db, plot.id, tomorrow)
 
     return {
@@ -111,7 +175,10 @@ def field_summary(db: Session, plot: Plot, now: datetime | None = None) -> dict:
         "soil_change_24h": change_24h,
         "soil_forecast_tomorrow": forecast,
         "soil_check_pct": plot.soil_check_pct,
-        "calibrated": plot.soil_dry_raw is not None and plot.soil_wet_raw is not None,
+        "soil_drying": drying,
+        "calibrated": calibrated,
+        "has_sensor": has_sensor,
+        "last_measured_at": _aware(last_measured_at) if last_measured_at else None,
         "temperature": latest.temperature if latest else None,
         "humidity": latest.humidity if latest else None,
         "pressure": latest.pressure if latest else None,
@@ -122,7 +189,9 @@ def field_summary(db: Session, plot: Plot, now: datetime | None = None) -> dict:
             "precip_mm": weather.precip_mm if weather else None,
             "weather": weather_word(weather.weather_code) if weather else None,
         },
-        "advice": {"rule": advice.rule, "message": advice.message},
+        "advice": {"rule": advice.rule, "category": advice.category, "headline": advice.headline,
+                   "detail": advice.detail, "message": advice.message},
+        "soil_note": soil_note(advice, drying=drying, check_pct=plot.soil_check_pct, forecast=forecast),
         "suggested_schedule": (
             {"plot_id": plot.id, "date": tomorrow, "start_time": time(8), "end_time": time(9),
              "work_types": [IRRIGATION], "note": "土の状態を確認し、灌水するか判断する"}
@@ -142,6 +211,17 @@ def _change_24h(readings: list[SensorReading], plot: Plot, now: datetime, curren
         return None
     past = soil_pct(min(candidates, key=lambda c: c[0])[1].soil_moisture_raw, plot)
     return None if past is None else round(current - past, 1)
+
+
+def _last_measured_at(db: Session, plot_id: int) -> datetime | None:
+    """30時間より前も含めた最後の測定時刻。センサーが止まったかを見分けるのに使う。"""
+    return db.scalar(
+        select(SensorReading.measured_at)
+        .join(SensorDevice, SensorReading.sensor_device_id == SensorDevice.id)
+        .where(SensorDevice.plot_id == plot_id)
+        .order_by(SensorReading.measured_at.desc())
+        .limit(1)
+    )
 
 
 def _irrigation_planned(db: Session, plot_id: int, day: date) -> bool:

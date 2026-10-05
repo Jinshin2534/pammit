@@ -27,6 +27,8 @@
 | 404 | `farm_not_found` | 農園コードを入れ直してもらう |
 | 404 | `plot_not_found` | 覚えていた農地を忘れ、一覧を取り直す |
 | 404 | `user_not_found` | 作業者・担当者の一覧を取り直す |
+| 404 | `session_not_found` | 作業が見つからない。作業の一覧を取り直す |
+| 404 | `thread_not_found` | 会話が見つからない（ほかの人の会話も含む）。会話の一覧を取り直す |
 | 409 | `session_already_active` | 新しい作業を始めず、`detail.session_id` の作業中の画面に戻る |
 | 409 | `judgment_config_missing` | 帽子を使った判定ができない。「別の作業を選ぶ」か、帽子なしで始め直す |
 | 422 | `inactive_assignee` | 停止した作業者を予定の担当にしようとした。担当者の候補を取り直す |
@@ -61,8 +63,29 @@
 | POST | `/plots` | 農地の登録（owner） | 実装済み |
 | PATCH | `/plots/{id}` | 農地の変更（owner）。ハウス / 露地、土壌水分の目安と校正値も。削除は `active: false` で行う | 実装済み |
 | GET | `/plots/summary` | 削除していない全農地の農園画面の中身をまとめて返す（切り替え用） | 実装済み |
-| GET | `/plots/{id}/field-summary` | 農園画面の表示内容（土壌水分の現在値・前日差・明日の予測、助言、明日の天気） | 実装済み |
-| GET | `/plots/{id}/sensor-readings` | 測定値の推移。土壌水分は農地の校正値で%に換算 | 実装済み |
+| GET | `/plots/{id}/field-summary` | 農園画面の表示内容（土壌水分の現在値・前日差・乾燥傾向・明日の予測、助言、土壌水分の解説、明日の天気、最後の測定時刻） | 実装済み |
+| GET | `/plots/{id}/sensor-readings` | 測定値の推移（`?from=&to=&interval=`）。土壌水分は農地の校正値で%に換算 | 実装済み |
+
+農園画面で使う値。
+
+| 項目 | 内容 |
+|---|---|
+| `measured_at` | 直近30時間で一番新しい測定時刻。なければ null |
+| `last_measured_at` / `has_sensor` | 30時間より前も含めた最後の測定時刻と、端末があるか。`has_sensor` が false か `last_measured_at` が null なら「測定データがありません」、`last_measured_at` があって `measured_at` が null ならセンサーが止まっている |
+| `soil_drying` | 乾燥傾向（24時間で3ポイント以上下がっている） |
+| `advice` | 助言カード。`category`（区分ラベル）・`headline`（見出し）・`detail`（補足）の3段で出す。`message` は見出しと補足をつないだ1文で、互換のため残している（AI 相談と今日のひとことの材料）。画面では使わない |
+| `soil_note` | データ推移の土壌水分タブの解説（`headline` と `body`）。土壌水分の値がないときは null |
+
+文言と判定の順番は [requirements.md](requirements.md) の農園の節にある。
+
+`sensor-readings` の `interval` は2つ。どちらも新しい順で、`measured_at` は UTC のタイムゾーン付き。
+
+| `interval` | 返すもの |
+|---|---|
+| `raw`（既定） | 測定値そのもの。最大3000件（10分間隔で約3週間分） |
+| `hour` | 1時間ごとの平均。`from` を省くと今日を含む過去7日。測定のない時間は返さないので、隣り合う点が1時間より空いていたら線を途切れさせる |
+
+農地に端末が複数あるときは区別せずまとめる。`raw` はすべての端末の値を返し（`sensor_device_id` で見分けられる）、`hour` はすべての端末の平均にする。
 
 削除した農地は、新しい予定・作業の開始・予定の農地の変更では 404 `plot_not_found` になる。
 過去の予定・作業ログ・日誌には名前を残し、`GET /plots/{id}` などの個別の取得はそのまま使える。`active: true` に戻すと元に戻る。
@@ -95,10 +118,11 @@
 
 | メソッド | パス | 用途 | 状態 |
 |---|---|---|---|
-| GET | `/chat/threads` | 過去の会話の一覧（`?session_id=` で作業中の会話だけ） | 実装済み |
+| GET | `/chat/threads` | 過去の会話の一覧。最後に話した順に100件、作業中の会話も混ぜる。中身のない会話は返さない（`?session_id=` で作業中の会話だけ） | 実装済み |
 | POST | `/chat/threads` | 会話を始める（作業中なら `session_id` を付ける） | 実装済み |
 | GET | `/chat/threads/{id}/messages` | 会話の内容 | 実装済み |
 | POST | `/chat/threads/{id}/messages` | 質問を送り、回答を受け取る。`mode: "voice"` で読み上げ向けの短い答え | 実装済み |
+| GET | `/work-sessions/{id}/chat-messages` | 作業1回分の AI 相談ログ（画面と音声の両方、本人の会話だけ）を古い順にまとめて返す。各発言に `thread_id` を付ける | 実装済み |
 | GET | `/knowledge` | 相談に使う知識の一覧（owner） | 実装済み |
 | POST | `/knowledge` | 知識の登録（owner） | 実装済み |
 

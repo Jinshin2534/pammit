@@ -101,3 +101,14 @@ class SensorReadingOut(SensorReading):
     source: str = Field(description="`wifi` | `lorawan`")
     battery_pct: int | None = Field(default=None, description="測れなかった場合は null")
     soil_moisture_pct: float | None = Field(default=None, description="サーバーで換算した値（0-100）")
+
+
+class SensorHourlyOut(BaseModel):
+    """1時間ごとの平均（`interval=hour`）。値のない項目は null。"""
+
+    measured_at: datetime = Field(description="その1時間の始まり（UTC のタイムゾーン付き）")
+    temperature: float | None = None
+    humidity: float | None = None
+    pressure: float | None = None
+    soil_moisture_pct: float | None = Field(default=None, description="サーバーで換算した値の平均（0-100）")
+    count: int = Field(description="平均した測定の数")
