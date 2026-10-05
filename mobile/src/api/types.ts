@@ -14,3 +14,11 @@ export type LoginRequest = Schemas['LoginRequest'];
 export type TokenResponse = Schemas['TokenResponse'];
 
 export type WorkSession = Schemas['WorkSession'];
+
+export type FieldSummary = Schemas['FieldSummary'];
+export type FieldAdvice = Schemas['AdviceOut'];
+export type SuggestedSchedule = Schemas['SuggestedSchedule'];
+export type SensorReadingOut = Schemas['SensorReadingOut'];
+
+export type ChatThread = Schemas['Thread'];
+export type ChatMessage = Schemas['Message'];

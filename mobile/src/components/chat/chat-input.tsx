@@ -1,17 +1,31 @@
 import { StyleSheet, TextInput } from 'react-native';
 import { colors, radii } from '@/theme/tokens';
 
-export type ChatInputProps = { value: string; onChangeText: (value: string) => void; onSend: () => void; onFocus?: () => void; placeholder?: string; disabled?: boolean; testID?: string };
-export function ChatInput({ value, onChangeText, onSend, onFocus, placeholder = 'メッセージを入力', disabled = false, testID }: ChatInputProps) {
+export type ChatInputProps = {
+  value: string;
+  onChangeText: (value: string) => void;
+  onSend: () => void;
+  onFocus?: () => void;
+  placeholder?: string;
+  /** 入力もできなくする（通信が切れているときなど） */
+  disabled?: boolean;
+  /** 送信中。入力はそのままにし（キーボードを閉じない）、送信だけ止める */
+  sending?: boolean;
+  maxLength?: number;
+  testID?: string;
+};
+export function ChatInput({ value, onChangeText, onSend, onFocus, placeholder = 'メッセージを入力', disabled = false, sending = false, maxLength, testID }: ChatInputProps) {
   return (
     <TextInput
       accessibilityLabel="相談内容"
+      accessibilityState={{ disabled, busy: sending }}
       editable={!disabled}
       enterKeyHint="send"
       maxFontSizeMultiplier={1.2}
+      maxLength={maxLength}
       onChangeText={onChangeText}
       onFocus={onFocus}
-      onSubmitEditing={() => value.trim() && onSend()}
+      onSubmitEditing={() => !sending && !disabled && value.trim() && onSend()}
       placeholder={placeholder}
       placeholderTextColor={colors.borderMuted}
       returnKeyType="send"
