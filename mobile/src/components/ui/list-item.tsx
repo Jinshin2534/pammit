@@ -11,7 +11,7 @@ export function ListItem({ title, description, leading, trailing, selected = fal
     <Pressable accessibilityRole={onPress ? 'button' : undefined} accessibilityState={{ selected, disabled }} disabled={disabled || !onPress} onPress={onPress} testID={testID} style={({ pressed }) => [styles.item, selected && styles.selected, pressed && styles.pressed, disabled && styles.disabled, style]}>
       {leading}
       <View style={[styles.copy, contentAlign === 'center' && styles.centeredCopy]}>
-        <AppText variant="bodyLg" style={[styles.title, selected && styles.selectedText]}>{title}</AppText>
+        <AppText variant="bodyLg" style={[styles.title, contentAlign === 'center' && styles.centeredTitle, selected && styles.selectedText]}>{title}</AppText>
         {description && <AppText variant="caption" style={[styles.description, selected && styles.selectedText]}>{description}</AppText>}
       </View>
       {trailing ?? (onPress && showChevron && <AppText variant="bodyLg">›</AppText>)}
@@ -24,6 +24,7 @@ const styles = StyleSheet.create({
   copy: { flex: 1 },
   centeredCopy: { alignItems: 'center' },
   title: { lineHeight: 25 },
+  centeredTitle: { textAlign: 'center' },
   description: { color: colors.textSub, lineHeight: 13 },
   selected: { backgroundColor: colors.accent },
   selectedText: { color: colors.textInverse },

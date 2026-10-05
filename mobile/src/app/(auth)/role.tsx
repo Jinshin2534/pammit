@@ -22,7 +22,7 @@ export default function RoleScreen() {
         {'どちらが\nログインしますか？'}
       </AppText>
       <ListItem
-        title="師匠さん"
+        title="師匠農家さん"
         contentAlign="center"
         showChevron={false}
         style={styles.item}
@@ -30,7 +30,7 @@ export default function RoleScreen() {
         testID="role-owner-card"
       />
       <ListItem
-        title="後継者さん"
+        title={'後継者さん /\nアルバイト'}
         contentAlign="center"
         showChevron={false}
         style={styles.item}
