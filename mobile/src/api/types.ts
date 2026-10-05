@@ -14,3 +14,16 @@ export type LoginRequest = Schemas['LoginRequest'];
 export type TokenResponse = Schemas['TokenResponse'];
 
 export type WorkSession = Schemas['WorkSession'];
+
+export type UserOut = Schemas['UserOut'];
+export type UserCreate = Schemas['UserCreate'];
+export type UserUpdate = Schemas['UserUpdate'];
+export type UserWithPin = Schemas['UserWithPin'];
+
+export type Plot = Schemas['Plot'];
+export type PlotCreate = Schemas['PlotCreate'];
+export type PlotUpdate = Schemas['PlotUpdate'];
+
+export type JournalDay = Schemas['JournalDay'];
+export type JournalWork = Schemas['JournalWork'];
+export type JournalExport = Schemas['JournalExport'];
