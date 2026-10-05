@@ -4,11 +4,13 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { WorkButton, WorkChoice, WorkFlowFooter, WorkPage, WorkStepHeader, workTextStyles } from '@/components/work/figma-work-ui';
 import { announceWorkPrompt } from '@/components/work/work-audio';
+import { flowParams, type WorkFlowParams } from '@/components/work/work-flow-params';
 import { colors, spacing } from '@/theme/tokens';
 
 export default function HatConnectionScreen() {
-  const params = useLocalSearchParams<{ plot?: string; work?: string; member?: string }>();
-  const [withHat, setWithHat] = useState(true);
+  const params = useLocalSearchParams<WorkFlowParams>();
+  // 帽子との通信はまだダミー（src/hat）。接続を押すと接続済みになる
+  const [withHat, setWithHat] = useState(params.usesHat !== '0');
   const [connected, setConnected] = useState(false);
   const [testComplete, setTestComplete] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -26,11 +28,11 @@ export default function HatConnectionScreen() {
 
   return (
     <WorkPage
-      header={<WorkStepHeader current={4} title="帽子を接続してください" />}
+      header={<WorkStepHeader current={3} title="帽子を接続してください" />}
       footer={<WorkFlowFooter
         status={!withHat ? '帽子なしで作業します' : connected ? '接続済み' : '未接続'}
         onBack={() => router.back()}
-        onNext={() => router.push({ pathname: '/work/confirm', params: { ...params, hat: withHat ? '使用する' : '使用しない' } })}
+        onNext={() => router.push({ pathname: '/work/confirm', params: flowParams({ ...params, usesHat: withHat ? '1' : '0' }) })}
         nextDisabled={withHat && !connected}
       />}
       testID="work-hat-screen">

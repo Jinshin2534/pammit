@@ -3,16 +3,23 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { WorkChoice, WorkFlowFooter, WorkPage, WorkStepHeader } from '@/components/work/figma-work-ui';
+import { flowParams, parseWorkTypeKey, workTypeOptions, type WorkFlowParams } from '@/components/work/work-flow-params';
+import { workTypeLabel, type WorkTypeKey } from '@/lib/work-types';
 import { spacing } from '@/theme/tokens';
 
-const workTypes = ['剪定', '灌水', '肥料', '摘果・摘葉', '収穫', '防除', '草刈り', 'その他'] as const;
-
 export default function WorkTypeScreen() {
-  const params = useLocalSearchParams<{ plot?: string; work?: string }>();
-  const [work, setWork] = useState(params.work ?? '');
+  const params = useLocalSearchParams<WorkFlowParams>();
+  // 予定から来たときは予定の作業だけ。1つならそれを選んでおく
+  const options = workTypeOptions(params.workTypes);
+  const [work, setWork] = useState<WorkTypeKey | null>(() => {
+    const current = parseWorkTypeKey(params.work);
+    if (current && options.includes(current)) return current;
+    return params.workTypes && options.length === 1 ? options[0] : null;
+  });
 
   const goNext = () => {
-    router.push({ pathname: '/work/worker', params: { plot: params.plot, work } } as never);
+    if (!work) return;
+    router.push({ pathname: '/work/hat', params: flowParams({ ...params, work }) });
   };
 
   return (
@@ -22,7 +29,7 @@ export default function WorkTypeScreen() {
       scrollable
       testID="work-type-screen">
       <View style={styles.options}>
-        {workTypes.map((name) => <WorkChoice key={name} label={name} selected={work === name} onPress={() => setWork(name)} />)}
+        {options.map((key) => <WorkChoice key={key} label={workTypeLabel(key)} selected={work === key} onPress={() => setWork(key)} />)}
       </View>
     </WorkPage>
   );

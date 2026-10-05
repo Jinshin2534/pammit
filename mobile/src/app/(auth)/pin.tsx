@@ -4,12 +4,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { errorMessage, isApiError } from '@/api';
+import { errorMessage, findResumableWorkSession, isApiError } from '@/api';
 import { HeaderBackground } from '@/components/background/header-background';
 import { TopBanner, useHeaderPaddingBelowBanner } from '@/components/feedback';
 import { PageLayout } from '@/components/layout/page-layout';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { AppText } from '@/components/ui';
+import { resumeActiveWork } from '@/components/work/work-navigation';
 import { msUntil } from '@/lib/datetime';
 import { useAuth } from '@/providers/auth';
 import { colors, radii } from '@/theme/tokens';
@@ -69,9 +70,13 @@ export default function PinScreen() {
   }, [lockedUntil]);
 
   const login = useMutation({
-    mutationFn: (value: string) => signIn(userId, value),
-    onSuccess: () => {
-      // TODO(作業画面をつなぐとき): fetchMyActiveWorkSessions() で終わっていない作業があれば作業中の画面へ
+    // ログインしたら、送り待ちの終了を送ってから、終わっていない自分の作業を探す
+    mutationFn: async (value: string) => findResumableWorkSession((await signIn(userId, value)).id),
+    onSuccess: (activeSession) => {
+      if (activeSession) {
+        resumeActiveWork(activeSession.id);
+        return;
+      }
       if (router.canDismiss()) router.dismissAll();
       router.replace('/(tabs)');
     },
