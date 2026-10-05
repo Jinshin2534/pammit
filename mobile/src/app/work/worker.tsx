@@ -4,12 +4,14 @@ import { StyleSheet, View } from 'react-native';
 
 import { WorkChoice, WorkFlowFooter, WorkPage, WorkStepHeader } from '@/components/work/figma-work-ui';
 import { useAppState } from '@/providers/app-state';
+import { useCurrentUser } from '@/providers/auth';
 import { spacing } from '@/theme/tokens';
 
 export default function WorkWorkerScreen() {
   const params = useLocalSearchParams<{ plot?: string; work?: string; member?: string }>();
-  const { users, session } = useAppState();
-  const [member, setMember] = useState(params.member ?? (session.role === 'worker' ? session.userName : ''));
+  const { users } = useAppState();
+  const me = useCurrentUser();
+  const [member, setMember] = useState(params.member ?? (me?.role === 'worker' ? me.name : ''));
   const workers = users.filter((user) => user.role === 'worker');
 
   return (

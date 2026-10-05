@@ -5,7 +5,8 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { SettingsFrame } from '@/components/settings/settings-frame';
 import { AppText, Button, TextField } from '@/components/ui';
 import { colors } from '@/theme/tokens';
-import { useAppState } from '@/providers/app-state';
+import { errorMessage, useUpdateMe } from '@/api';
+import { useAuth, useCurrentUser } from '@/providers/auth';
 
 const avatars = [
   { id: 'default', label: 'すだちキャラクター', source: require('../../../assets/images/mascot-sudachi.png'), wide: true },
@@ -15,21 +16,41 @@ const avatars = [
 ] as const;
 
 export default function ProfileScreen() {
-  const { session, updateCurrentProfile } = useAppState();
+  const me = useCurrentUser();
+  const { rememberUser } = useAuth();
+  const updateMe = useUpdateMe();
   const [nameDraft, setNameDraft] = useState<string | null>(null);
   const [avatarDraft, setAvatarDraft] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const name = nameDraft ?? session.userName;
-  const avatarId = avatarDraft ?? session.avatarId ?? 'default';
+  const name = nameDraft ?? me?.name ?? '';
+  const avatarId = avatarDraft ?? me?.icon ?? 'default';
   const avatarIndex = Math.max(0, avatars.findIndex((item) => item.id === avatarId));
   const avatar = avatars[avatarIndex];
 
+  const save = () => {
+    setSaveError(null);
+    updateMe.mutate(
+      { name: name.trim(), icon: avatar.id },
+      {
+        onSuccess: (updated) => {
+          setNameDraft(null);
+          setAvatarDraft(null);
+          setSaved(true);
+          void rememberUser(updated);
+        },
+        onError: (error) => setSaveError(errorMessage(error)),
+      },
+    );
+  };
+
   return (
     <SettingsFrame
-      onSave={() => { updateCurrentProfile({ name, avatarId: avatar.id }); setSaved(true); }}
-      saveDisabled={!name.trim()}
+      onSave={save}
+      saveDisabled={!name.trim() || updateMe.isPending}
       saved={saved}
+      errorMessage={saveError}
       testID="profile-screen">
       <AppText variant="title" style={styles.title}>プロフィール</AppText>
       <TextField label="名前" value={name} onChangeText={(value) => { setNameDraft(value); setSaved(false); }} testID="profile-name" />

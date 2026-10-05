@@ -1,21 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { SettingsFrame } from '@/components/settings/settings-frame';
 import { AppText } from '@/components/ui';
+import { defaultSettings, loadSettings, saveSettings } from '@/storage';
 import { colors, radii } from '@/theme/tokens';
 
 export default function VolumeScreen() {
-  const [volume, setVolume] = useState(65);
+  const [volume, setVolume] = useState(defaultSettings.volume);
   const [saved, setSaved] = useState(false);
 
-  const save = () => {
+  useEffect(() => {
+    void loadSettings().then((settings) => setVolume(settings.volume));
+  }, []);
+
+  const save = async () => {
+    await saveSettings({ volume });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   return (
-    <SettingsFrame onSave={save} saved={saved} testID="volume-screen">
+    <SettingsFrame onSave={() => void save()} saved={saved} testID="volume-screen">
       <AppText variant="title" style={styles.title}>音量</AppText>
       <View style={styles.slider}>
         <ControlButton kind="minus" onPress={() => setVolume((value) => Math.max(0, value - 10))} />

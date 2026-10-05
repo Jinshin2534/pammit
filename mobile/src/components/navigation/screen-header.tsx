@@ -40,7 +40,7 @@ export function ScreenHeader({
         {title}
       </Text>
       {showBack && (
-        <View style={[styles.backSlot, { top: 41.5 + safeOffset }]}>
+        <View style={[styles.backSlot, { top: topPadding + 1.5 + safeOffset }]}>
           <IconButton
             accessibilityLabel={backAccessibilityLabel}
             icon="back"

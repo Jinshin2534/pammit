@@ -12,6 +12,7 @@ import { ScreenHeader } from '@/components/navigation/screen-header';
 import { AppText, Dropdown } from '@/components/ui';
 import { colors, radii } from '@/theme/tokens';
 import { useAppState } from '@/providers/app-state';
+import { useCurrentUser } from '@/providers/auth';
 
 const routes = { home: '/(tabs)', schedule: '/(tabs)/schedule', farm: '/(tabs)/farm', ai: '/(tabs)/ai', admin: '/admin' } as const;
 const metrics = ['土壌水分', '気温', '湿度', '気圧'] as const;
@@ -65,7 +66,8 @@ const metricData: Record<Metric, {
 const xAxisTicks = ['一昨日', '昨日', '今日12:15', '明日9:00'] as const;
 
 export default function FarmScreen() {
-  const { farms, session } = useAppState();
+  const { farms } = useAppState();
+  const role = useCurrentUser()?.role ?? 'worker';
   const [plotIndex, setPlotIndex] = useState(0);
   const [view, setView] = useState<'summary' | 'trend'>('summary');
   const [metric, setMetric] = useState<Metric>('土壌水分');
@@ -80,7 +82,7 @@ export default function FarmScreen() {
       header={view === 'trend'
         ? <ScreenHeader title="データ推移" showBack onBack={() => setView('summary')} />
         : <ScreenHeader title="農園" />}
-      footer={<BottomNav role={session.role} activeTab="farm" onTabPress={(tab) => router.navigate(routes[tab])} />}
+      footer={<BottomNav role={role} activeTab="farm" onTabPress={(tab) => router.navigate(routes[tab])} />}
       scrollable={false}
       testID="farm-screen">
       {view === 'summary' ? <View style={styles.summary}>

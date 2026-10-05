@@ -8,6 +8,7 @@ import { BottomNav } from '@/components/navigation/bottom-nav';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { AppText, Button, Dropdown } from '@/components/ui';
 import { ScheduleWorkType, useAppState } from '@/providers/app-state';
+import { useCurrentUser } from '@/providers/auth';
 import { colors, fonts, radii } from '@/theme/tokens';
 
 const routes = { home: '/(tabs)', schedule: '/(tabs)/schedule', farm: '/(tabs)/farm', ai: '/(tabs)/ai', admin: '/admin' } as const;
@@ -24,7 +25,8 @@ const workOptions: { label: string; value: ScheduleWorkType }[] = [
 
 export default function NewScheduleScreen() {
   const { date = '2026-10-10', id, source } = useLocalSearchParams<{ date?: string; id?: string; source?: string }>();
-  const { saveSchedule, schedules, farms, users, session } = useAppState();
+  const { saveSchedule, schedules, farms, users } = useAppState();
+  const role = useCurrentUser()?.role ?? 'worker';
   const plotOptions = farms.map(({ name }) => ({ label: name, value: name }));
   const memberOptions = users.filter((user) => user.role === 'worker').map(({ name }) => ({ label: name, value: name }));
   const existing = schedules.find((schedule) => schedule.id === id);
@@ -63,7 +65,7 @@ export default function NewScheduleScreen() {
   return <PageLayout
     background={<HeaderBackground />}
     header={<ScreenHeader title={existing ? '予定を変更' : '予定を入力'} showBack onBack={() => router.back()} />}
-    footer={<BottomNav role={session.role} activeTab="schedule" onTabPress={(tab) => router.navigate(routes[tab])} />}
+    footer={<BottomNav role={role} activeTab="schedule" onTabPress={(tab) => router.navigate(routes[tab])} />}
     testID="schedule-input-screen">
     <AppText variant="bodyLgBold">{parsedDate.getMonth() + 1}月{parsedDate.getDate()}日（{weekdays[parsedDate.getDay()]}）</AppText>
     <View style={styles.fieldGroup}>

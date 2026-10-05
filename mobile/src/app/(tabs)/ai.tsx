@@ -8,7 +8,7 @@ import { PageLayout } from '@/components/layout/page-layout';
 import { BottomNav } from '@/components/navigation/bottom-nav';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { AppText, SmallButton } from '@/components/ui';
-import { useAppState } from '@/providers/app-state';
+import { useCurrentUser } from '@/providers/auth';
 
 const routes = { home: '/(tabs)', schedule: '/(tabs)/schedule', farm: '/(tabs)/farm', ai: '/(tabs)/ai', admin: '/admin' } as const;
 const topics = ['病害について', '収穫について', 'スケジュールについて', 'その他'];
@@ -19,7 +19,7 @@ const histories = [
 ];
 
 export default function AiChatScreen() {
-  const { session } = useAppState();
+  const role = useCurrentUser()?.role ?? 'worker';
   const { from } = useLocalSearchParams<{ from?: string }>();
   const fromWork = from === 'work';
   const [message, setMessage] = useState('');
@@ -61,8 +61,8 @@ export default function AiChatScreen() {
         </View>}
       footer={mode !== 'history' ? <View style={styles.footer}>
         <View style={styles.inputRow}><ChatInput value={message} onChangeText={setMessage} onFocus={() => !messages.length && setShowTopics(true)} onSend={send} /></View>
-        {!keyboardShown && <BottomNav role={session.role} activeTab="ai" onTabPress={(tab) => router.navigate(routes[tab])} />}
-      </View> : <BottomNav role={session.role} activeTab="ai" onTabPress={(tab) => router.navigate(routes[tab])} />}
+        {!keyboardShown && <BottomNav role={role} activeTab="ai" onTabPress={(tab) => router.navigate(routes[tab])} />}
+      </View> : <BottomNav role={role} activeTab="ai" onTabPress={(tab) => router.navigate(routes[tab])} />}
       scrollable={false}
       testID="ai-screen">
       {mode !== 'history' ? <ScrollView

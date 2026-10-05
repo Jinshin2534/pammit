@@ -8,7 +8,7 @@ import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { AppText } from '@/components/ui';
 import { colors, radii, strokes } from '@/theme/tokens';
-import { useAppState } from '@/providers/app-state';
+import { useCurrentUser } from '@/providers/auth';
 
 const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/farm' | '/(tabs)/ai' | '/admin'> = {
   home: '/(tabs)',
@@ -26,9 +26,9 @@ export default function HomeAdviceScreen() {
     role?: string;
     userName?: string;
   }>();
-  const { session } = useAppState();
-  const role = session.role;
-  const userName = userNameParam ?? session.userName;
+  const me = useCurrentUser();
+  const role = me?.role ?? 'worker';
+  const userName = userNameParam ?? me?.name ?? '';
 
   const navigateTab = (tab: BottomNavTab) => {
     router.navigate({ pathname: routes[tab], params: { role, userName } });

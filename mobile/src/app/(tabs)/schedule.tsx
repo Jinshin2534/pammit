@@ -9,6 +9,7 @@ import { BottomNav } from '@/components/navigation/bottom-nav';
 import { ScheduleCarousel, WorkTypeLegend } from '@/components/schedule';
 import { AppText, Button } from '@/components/ui';
 import { useAppState } from '@/providers/app-state';
+import { useCurrentUser } from '@/providers/auth';
 import { colors, fonts, radii, workTypeColors } from '@/theme/tokens';
 
 const routes = { home: '/(tabs)', schedule: '/(tabs)/schedule', farm: '/(tabs)/farm', ai: '/(tabs)/ai', admin: '/admin' } as const;
@@ -57,7 +58,8 @@ function Day({ day, firstWeekday, selected, types, onPress }: { day: number; fir
 
 export default function ScheduleScreen() {
   const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
-  const { schedules, schedulesForDate, session } = useAppState();
+  const { schedules, schedulesForDate } = useAppState();
+  const role = useCurrentUser()?.role ?? 'worker';
   const today = useMemo(() => new Date(), []);
   const latestMonth = useMemo(() => addMonths(startOfMonth(today), 6), [today]);
   const requestedDate = useMemo(() => dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? new Date(`${dateParam}T12:00:00`) : null, [dateParam]);
@@ -130,7 +132,7 @@ export default function ScheduleScreen() {
           />}
         </View>
       </ScrollView>
-      <BottomNav role={session.role} activeTab="schedule" onTabPress={(tab) => router.navigate(routes[tab])} />
+      <BottomNav role={role} activeTab="schedule" onTabPress={(tab) => router.navigate(routes[tab])} />
     </SafeAreaView>
   </View>;
 }

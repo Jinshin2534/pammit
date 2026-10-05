@@ -38,7 +38,8 @@
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "openapi-typescript": "^7.13.0"
   },
   "scripts": {
     "start": "expo start",
@@ -47,7 +48,13 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "doctor": "npx expo-doctor"
+    "doctor": "npx expo-doctor",
+    "api:types": "cd ../backend && ./.venv/bin/python scripts_export_openapi.py && cd ../mobile && openapi-typescript ../backend/openapi.json -o src/api/schema.d.ts"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "openapi-typescript": {
+      "typescript": "$typescript"
+    }
+  }
 }

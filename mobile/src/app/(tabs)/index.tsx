@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { HomePage } from '@/components/home/home-page';
 import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
 import { useAppState } from '@/providers/app-state';
+import { useCurrentUser } from '@/providers/auth';
 
 const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/farm' | '/(tabs)/ai' | '/admin'> = {
   home: '/(tabs)',
@@ -16,8 +17,10 @@ export default function HomeScreen() {
   const { offline } = useLocalSearchParams<{
     offline?: string;
   }>();
-  const { schedulesForDate, session } = useAppState();
-  const { role, userName } = session;
+  const { schedulesForDate } = useAppState();
+  const me = useCurrentUser();
+  const role = me?.role ?? 'worker';
+  const userName = me?.name ?? '';
   const todaySchedules = schedulesForDate('2026-10-10');
 
   const navigateTab = (tab: BottomNavTab) => {

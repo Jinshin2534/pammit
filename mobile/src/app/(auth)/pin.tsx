@@ -1,13 +1,17 @@
+import { useMutation } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { errorMessage, isApiError } from '@/api';
 import { HeaderBackground } from '@/components/background/header-background';
+import { TopBanner, useHeaderPaddingBelowBanner } from '@/components/feedback';
 import { PageLayout } from '@/components/layout/page-layout';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { AppText } from '@/components/ui';
-import { useAppState } from '@/providers/app-state';
+import { msUntil } from '@/lib/datetime';
+import { useAuth } from '@/providers/auth';
 import { colors, radii } from '@/theme/tokens';
 
 type KeyValue = `${0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}` | 'submit' | 'delete';
@@ -22,20 +26,79 @@ const rows: readonly (readonly KeyValue[])[] = [
 const submitIcon = require('../../../assets/figma/auth-home/pin-04.svg');
 const deleteIcon = require('../../../assets/figma/auth-home/pin-05.svg');
 
+function lockMessage(remainingMs: number) {
+  const totalSeconds = Math.ceil(remainingMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const remaining = minutes > 0 ? `${minutes}分${seconds > 0 ? `${seconds}秒` : ''}` : `${seconds}秒`;
+  return `PINを続けて間違えたため、あと${remaining}ログインできません`;
+}
+
+function backToRoleSelect() {
+  if (router.canDismiss()) router.dismissAll();
+  router.replace('/(auth)/role');
+}
+
 export default function PinScreen() {
-  const { role: roleParam, userName = '近未来 すだち子' } = useLocalSearchParams<{
+  const { userId: userIdParam, userName = '', remembered } = useLocalSearchParams<{
     role?: string;
+    userId?: string;
     userName?: string;
+    /** 前回ログインした人として開いたとき '1' */
+    remembered?: string;
   }>();
-  const role = roleParam === 'owner' ? 'owner' : 'worker';
-  const { setSession } = useAppState();
+  const userId = Number(userIdParam);
+  const { signIn } = useAuth();
+  const paddingBelowBanner = useHeaderPaddingBelowBanner();
   const [pin, setPin] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [lockedUntil, setLockedUntil] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const lockRemainingMs = lockedUntil ? msUntil(lockedUntil, new Date(now)) : 0;
+  const locked = lockRemainingMs > 0;
+
+  // ロック中は残り時間を1秒ごとに減らす
+  useEffect(() => {
+    if (!lockedUntil) return;
+    const timer = setInterval(() => {
+      const current = Date.now();
+      setNow(current);
+      if (msUntil(lockedUntil, new Date(current)) === 0) setLockedUntil(null);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockedUntil]);
+
+  const login = useMutation({
+    mutationFn: (value: string) => signIn(userId, value),
+    onSuccess: () => {
+      // TODO(作業画面をつなぐとき): fetchMyActiveWorkSessions() で終わっていない作業があれば作業中の画面へ
+      if (router.canDismiss()) router.dismissAll();
+      router.replace('/(tabs)');
+    },
+    onError: (cause) => {
+      setPin('');
+      if (isApiError(cause, 'pin_locked')) {
+        const until = cause.detail?.locked_until;
+        setError(null);
+        setNow(Date.now());
+        setLockedUntil(typeof until === 'string' ? until : null);
+        return;
+      }
+      if (isApiError(cause, 'invalid_pin')) {
+        setError('名前か PIN が正しくありません');
+        return;
+      }
+      setError(errorMessage(cause));
+    },
+  });
+
+  const bannerMessage = locked ? lockMessage(lockRemainingMs) : error;
 
   const pressKey = (value: KeyValue) => {
     if (value === 'submit') {
-      if (pin.length === 4) {
-        setSession({ role, userName });
-        router.replace('/(tabs)');
+      if (pin.length === 4 && !locked && !login.isPending && Number.isInteger(userId)) {
+        setError(null);
+        login.mutate(pin);
       }
       return;
     }
@@ -49,7 +112,12 @@ export default function PinScreen() {
   return (
     <PageLayout
       background={<HeaderBackground position="top" />}
-      header={<ScreenHeader title="PINを入力" />}
+      header={
+        <View>
+          {bannerMessage && <TopBanner kind="network" message={bannerMessage} testID="pin-error-banner" />}
+          <ScreenHeader title="PINを入力" topPadding={bannerMessage ? paddingBelowBanner : 40} />
+        </View>
+      }
       scrollable={false}
       testID="pin-screen">
       <View style={styles.welcomeSlot}>
@@ -103,6 +171,18 @@ export default function PinScreen() {
           </View>
         ))}
       </View>
+
+      {(remembered === '1' || locked) && (
+        <Pressable
+          accessibilityRole="button"
+          onPress={backToRoleSelect}
+          style={({ pressed }) => [styles.switchUser, pressed && styles.pressed]}
+          testID="pin-switch-user">
+          <AppText variant="bodyLg" style={styles.switchUserText}>
+            別の人でログイン
+          </AppText>
+        </Pressable>
+      )}
     </PageLayout>
   );
 }
@@ -162,6 +242,17 @@ const styles = StyleSheet.create({
   keyIcon: {
     height: 45,
     width: 45,
+  },
+  switchUser: {
+    alignSelf: 'center',
+    marginTop: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  switchUserText: {
+    color: colors.link,
+    lineHeight: 25,
+    textDecorationLine: 'underline',
   },
   pressed: {
     opacity: 0.7,
