@@ -14,3 +14,12 @@ export type LoginRequest = Schemas['LoginRequest'];
 export type TokenResponse = Schemas['TokenResponse'];
 
 export type WorkSession = Schemas['WorkSession'];
+
+export type Plot = Schemas['Plot'];
+
+export type Schedule = Schemas['Schedule'];
+export type ScheduleCreate = Schemas['ScheduleCreate'];
+export type ScheduleUpdate = Schemas['ScheduleUpdate'];
+export type SuggestedSchedule = Schemas['SuggestedSchedule'];
+export type AssigneeCandidate = Schemas['AssigneeCandidate'];
+export type DailyAdvice = Schemas['DailyAdviceOut'];

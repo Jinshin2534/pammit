@@ -5,10 +5,12 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { HeaderBackground } from '@/components/background/header-background';
 import { PageLayout } from '@/components/layout/page-layout';
 import { ScreenHeader } from '@/components/navigation/screen-header';
+import { memberSummary } from '@/components/schedule/schedule-items';
 import { AppText, Button } from '@/components/ui';
 import { colors, fonts, radii, spacing, strokes } from '@/theme/tokens';
 
 export type HomeSchedule = {
+  /** カードごとの id。1つの予定に作業が複数あるときはカードを分ける */
   id: string;
   start: string;
   end: string;
@@ -20,6 +22,8 @@ export type HomeSchedule = {
 export type HomePageProps = {
   userName: string;
   advice: { summary: string; detail: string };
+  /** 日本時間の今の日時。「2026 / 10 / 10 (土)   12:15」の形 */
+  now: string;
   schedules: readonly HomeSchedule[];
   offline?: boolean;
   footer?: ReactNode;
@@ -39,6 +43,7 @@ const settingsGear = require('../../../assets/figma/auth-home/settings-gear.png'
 export function HomePage({
   userName,
   advice,
+  now,
   schedules,
   offline = false,
   footer,
@@ -83,7 +88,7 @@ export function HomePage({
           <View style={styles.datePill}>
             <View style={styles.dateAccent} />
             <AppText variant="caption" style={styles.dateText}>
-              {'2026 / 10 / 10 (土)   12:15'}
+              {now}
             </AppText>
           </View>
         </View>
@@ -122,7 +127,7 @@ export function HomePage({
                 </AppText>
                 <View style={styles.scheduleDetails}>
                   <ScheduleDetail label="場所" value={schedule.place} />
-                  <ScheduleDetail label="担当" value={schedule.members.join('・') || '未指定'} />
+                  <ScheduleDetail label="担当" value={memberSummary(schedule.members)} />
                 </View>
               </View>
             </Pressable>

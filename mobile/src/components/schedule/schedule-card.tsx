@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui';
 import { colors, radii, strokes } from '@/theme/tokens';
+import { memberSummary } from './schedule-items';
 import { WorkTypeKey } from './work-type-legend';
 
 export type ScheduleCardLayout = 'compact' | 'wide';
@@ -22,10 +23,8 @@ export type ScheduleCardProps = {
 };
 
 export function ScheduleCard({ start, end, work, place, members, layout = 'compact', appearance = 'filled', onPress, testID }: ScheduleCardProps) {
-  const shown = members.slice(0, 5);
-  const extra = Math.max(0, members.length - shown.length);
   const outlined = appearance === 'outlined';
-  const memberText = `${shown.join('・') || '未指定'}${extra > 0 ? `・ほか${extra}名` : ''}`;
+  const memberText = memberSummary(members);
 
   return (
     <Pressable
