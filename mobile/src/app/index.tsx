@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { authKeys, fetchMe, isApiError, isOfflineError } from '@/api';
+import { authKeys, fetchMe, findResumableWorkSession, isApiError, isOfflineError } from '@/api';
 import { PammitLogo } from '@/components/branding';
 import { Banner } from '@/components/feedback';
+import { resumeActiveWork } from '@/components/work/work-navigation';
 import { goToLogin, useAuth } from '@/providers/auth';
 import { colors } from '@/theme/tokens';
 
@@ -26,7 +27,10 @@ export default function IndexScreen() {
     try {
       const me = await queryClient.fetchQuery({ queryKey: authKeys.me(), queryFn: ({ signal }) => fetchMe(signal), staleTime: 0 });
       await rememberUser(me);
-      router.replace('/(tabs)');
+      // 終わっていない自分の作業があれば、作業中の画面に戻す
+      const activeSession = await findResumableWorkSession(me.id);
+      if (activeSession) resumeActiveWork(activeSession.id);
+      else router.replace('/(tabs)');
     } catch (error) {
       // つながらない・サーバーの一時的なエラーは、ここでやり直せるようにする
       if (isOfflineError(error) || (isApiError(error) && error.status >= 500)) {

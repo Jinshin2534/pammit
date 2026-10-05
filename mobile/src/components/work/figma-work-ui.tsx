@@ -50,7 +50,7 @@ export function WorkTitleHeader({ title }: { title: string }) {
   );
 }
 
-export function WorkStepHeader({ current, title, total = 5 }: { current: number; title: string; total?: number }) {
+export function WorkStepHeader({ current, title, total = 4 }: { current: number; title: string; total?: number }) {
   const topOffset = useStatusBarOffset();
   return (
     <View style={[styles.stepHeader, { paddingTop: 40 + topOffset }]}>

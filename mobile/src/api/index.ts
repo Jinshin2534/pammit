@@ -4,6 +4,7 @@ export * from './daily-advice';
 export * from './errors';
 export * from './plots';
 export * from './schedules';
+export * from './work-outbox';
 export * from './work-sessions';
 export { apiRequest } from './client';
 export type * from './types';
