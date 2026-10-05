@@ -25,7 +25,7 @@ SYSTEM = (
 
 
 def build_context(db: Session, farm: Farm, day: date) -> dict:
-    plots = list(db.scalars(select(Plot).where(Plot.farm_id == farm.id).order_by(Plot.id)))
+    plots = list(db.scalars(select(Plot).where(Plot.farm_id == farm.id, Plot.active.is_(True)).order_by(Plot.id)))
     schedules = list(db.scalars(
         select(Schedule).where(Schedule.farm_id == farm.id, Schedule.date == day).order_by(Schedule.start_time)))
     weather = forecast_for(db, plots[0].id, day) if plots else None

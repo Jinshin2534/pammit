@@ -37,6 +37,7 @@ class Plot(BaseModel):
     soil_check_pct: float = Field(description="灌水の助言で使う土壌水分の目安（%）")
     soil_dry_raw: int | None = Field(default=None, description="土壌水分センサーの乾燥時の生値")
     soil_wet_raw: int | None = Field(default=None, description="土壌水分センサーの飽和時の生値")
+    active: bool = Field(description="false は削除（停止）した農園")
 
 
 class PlotCreate(BaseModel):
@@ -53,3 +54,4 @@ class PlotUpdate(BaseModel):
     soil_check_pct: float | None = Field(default=None, ge=0, le=100)
     soil_dry_raw: int | None = Field(default=None, ge=0)
     soil_wet_raw: int | None = Field(default=None, ge=0)
+    active: bool | None = Field(default=None, description="false で削除（停止）する")

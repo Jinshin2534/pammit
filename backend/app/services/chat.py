@@ -70,8 +70,11 @@ TOOLS = [
 ]
 
 
-def _plots(db: Session, farm_id: int, name: str | None) -> list[Plot]:
-    plots = list(db.scalars(select(Plot).where(Plot.farm_id == farm_id).order_by(Plot.id)))
+def _plots(db: Session, farm_id: int, name: str | None, active_only: bool = True) -> list[Plot]:
+    stmt = select(Plot).where(Plot.farm_id == farm_id).order_by(Plot.id)
+    if active_only:
+        stmt = stmt.where(Plot.active.is_(True))
+    plots = list(db.scalars(stmt))
     if name:
         matched = [p for p in plots if name in p.name or p.name in name]
         return matched or plots
@@ -92,7 +95,9 @@ def run_tool(db: Session, user: User, name: str, args: dict) -> object:
     if name == "get_work_history":
         since = datetime.now(JST).date() - timedelta(days=int(args.get("days") or 7))
         stmt = select(WorkLog).where(WorkLog.farm_id == user.farm_id, WorkLog.worked_on >= since)
-        plot_ids = [p.id for p in _plots(db, user.farm_id, args.get("plot_name"))] if args.get("plot_name") else None
+        # 過去の作業は、削除した農園の名前でも絞り込めるようにする
+        plot_ids = ([p.id for p in _plots(db, user.farm_id, args.get("plot_name"), active_only=False)]
+                    if args.get("plot_name") else None)
         if plot_ids:
             stmt = stmt.where(WorkLog.plot_id.in_(plot_ids))
         return [{"date": w.worked_on, "user": w.user.name, "plot": w.plot.name, "work_type": w.work_type,

@@ -18,6 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -113,6 +114,8 @@ class Plot(Base):
     soil_check_pct: Mapped[float] = mapped_column(Float, default=28.0)
     soil_dry_raw: Mapped[int | None] = mapped_column(Integer)
     soil_wet_raw: Mapped[int | None] = mapped_column(Integer)
+    # 偽にすると一覧から消え、新しい予定・作業には使えない。過去の予定・作業ログには名前を残す
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
 
 

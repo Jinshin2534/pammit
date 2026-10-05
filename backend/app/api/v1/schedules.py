@@ -1,10 +1,11 @@
+from collections.abc import Iterable
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import current_user, get_plot_in_farm
+from app.api.deps import current_user, get_active_plot_in_farm
 from app.core.errors import api_error
 from app.db import get_db
 from app.models import Schedule, User
@@ -22,10 +23,12 @@ def _out(s: Schedule) -> ScheduleOut:
     )
 
 
-def _assignees(db: Session, ids: list[int], farm_id: int) -> list[User]:
+def _assignees(db: Session, ids: list[int], farm_id: int, current: Iterable[User] = ()) -> list[User]:
+    """停止中の人は新しく担当者にできない。すでに担当になっている人はそのまま残せる。"""
     unique = list(dict.fromkeys(ids))
+    kept = {u.id for u in current}
     users = list(db.scalars(select(User).where(User.id.in_(unique), User.farm_id == farm_id)))
-    if len(users) != len(unique):
+    if len(users) != len(unique) or any(not u.active and u.id not in kept for u in users):
         api_error(404, "user_not_found", "担当者が見つかりません")
     return users
 
@@ -79,7 +82,7 @@ def create_schedule(
         response.status_code = status.HTTP_200_OK
         return _out(existing)
 
-    plot = get_plot_in_farm(db, body.plot_id, user.farm_id)
+    plot = get_active_plot_in_farm(db, body.plot_id, user.farm_id)
     s = Schedule(
         client_event_id=body.client_event_id, farm_id=user.farm_id, plot_id=plot.id, date=body.date,
         start_time=body.start_time, end_time=body.end_time, work_types=[w.value for w in body.work_types],
@@ -96,8 +99,8 @@ def update_schedule(
 ) -> ScheduleOut:
     s = _get(db, schedule_id, user)
     changes = body.model_dump(exclude_unset=True)
-    if changes.get("plot_id") is not None:
-        s.plot = get_plot_in_farm(db, changes["plot_id"], user.farm_id)
+    if changes.get("plot_id") is not None and changes["plot_id"] != s.plot_id:
+        s.plot = get_active_plot_in_farm(db, changes["plot_id"], user.farm_id)
     if changes.get("date") is not None:
         s.date = changes["date"]
     for field in ("start_time", "end_time", "note"):
@@ -106,7 +109,7 @@ def update_schedule(
     if changes.get("work_types") is not None:
         s.work_types = [w.value for w in body.work_types]
     if changes.get("assignee_ids") is not None:
-        s.assignees = _assignees(db, changes["assignee_ids"], user.farm_id)
+        s.assignees = _assignees(db, changes["assignee_ids"], user.farm_id, s.assignees)
     if s.start_time and s.end_time and s.end_time <= s.start_time:
         api_error(422, "invalid_time_range", "終了時刻は開始時刻より後にしてください")
     db.commit()

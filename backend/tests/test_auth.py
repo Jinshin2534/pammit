@@ -36,8 +36,9 @@ class AuthTests(unittest.TestCase):
     def test_five_failures_lock_the_pin(self) -> None:
         farm = make_farm()
         body = {"farm_code": farm.code, "user_id": farm.worker_id, "pin": "0000"}
-        for _ in range(5):
-            self.client.post("/api/v1/auth/login", json=body)
+        codes = [self.client.post("/api/v1/auth/login", json=body).status_code for _ in range(5)]
+        # ロックがかかった5回目から 423 を返す
+        self.assertEqual(codes, [401, 401, 401, 401, 423])
         # ロック中は正しい PIN でも入れない
         r = self.client.post("/api/v1/auth/login", json={**body, "pin": "1234"})
         self.assertEqual(r.status_code, 423)
@@ -84,11 +85,46 @@ class AuthTests(unittest.TestCase):
         r = self.client.post("/api/v1/auth/login", json={"farm_code": farm.code, "user_id": farm.worker_id, "pin": "1234"})
         self.assertEqual(r.status_code, 401)
 
+    def test_users_list_includes_owner_and_deactivated(self) -> None:
+        farm = make_farm()
+        owner = login(self.client, farm, farm.owner_id)
+        self.client.patch(f"/api/v1/users/{farm.worker_id}", headers=owner, json={"active": False})
+        users = {u["id"]: u for u in self.client.get("/api/v1/users", headers=owner).json()}
+        self.assertEqual((users[farm.owner_id]["active"], users[farm.worker_id]["active"]), (True, False))
+        # 停止中の人はログイン画面に出ない
+        r = self.client.get("/api/v1/auth/users", params={"farm_code": farm.code})
+        self.assertEqual([u["id"] for u in r.json()], [farm.owner_id])
+
+    def test_assignee_candidates_are_active_users_of_own_farm(self) -> None:
+        farm, _ = make_farm(), make_farm()
+        owner = login(self.client, farm, farm.owner_id)
+        stopped = self.client.post("/api/v1/users", headers=owner, json={"name": "停止する人"}).json()["user"]["id"]
+        self.client.patch(f"/api/v1/users/{stopped}", headers=owner, json={"active": False})
+        r = self.client.get("/api/v1/assignee-candidates", headers=login(self.client, farm, farm.worker_id))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json(), [{"id": farm.owner_id, "name": "師匠", "role": "owner"},
+                                    {"id": farm.worker_id, "name": "作業者", "role": "worker"}])
+
+    def test_assignee_candidates_need_login(self) -> None:
+        self.assertEqual(self.client.get("/api/v1/assignee-candidates").status_code, 401)
+
+    def test_rejects_values_not_on_screen(self) -> None:
+        farm = make_farm()
+        owner = login(self.client, farm, farm.owner_id)
+        for body in ({"name": "x", "gender": "女性"}, {"name": "x", "worker_type": "農家"},
+                     {"name": "x", "worker_type": "後継者"}):
+            self.assertEqual(self.client.post("/api/v1/users", headers=owner, json=body).status_code, 422, body)
+        r = self.client.patch("/api/v1/users/me", headers=owner, json={"icon": "sudachi-1"})
+        self.assertEqual(r.status_code, 422)
+        r = self.client.post("/api/v1/users", headers=owner,
+                             json={"name": "後継者", "gender": "回答しない", "worker_type": "後継者さん"})
+        self.assertEqual((r.json()["user"]["gender"], r.json()["user"]["worker_type"]), ("回答しない", "後継者さん"))
+
     def test_update_me(self) -> None:
         farm = make_farm()
         headers = login(self.client, farm, farm.worker_id)
-        r = self.client.patch("/api/v1/users/me", headers=headers, json={"name": "巣立 好喜子", "icon": "sudachi-1"})
-        self.assertEqual((r.json()["name"], r.json()["icon"]), ("巣立 好喜子", "sudachi-1"))
+        r = self.client.patch("/api/v1/users/me", headers=headers, json={"name": "巣立 好喜子", "icon": "hat"})
+        self.assertEqual((r.json()["name"], r.json()["icon"]), ("巣立 好喜子", "hat"))
 
     def test_users_of_other_farms_are_invisible(self) -> None:
         farm, other = make_farm(), make_farm()

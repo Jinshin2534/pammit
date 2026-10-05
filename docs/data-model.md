@@ -4,6 +4,7 @@ PostgreSQL 16（pgvector 拡張）を使う。`detections`・`evaluation_runs` �
 
 時刻はタイムゾーン付きで保存し、端末の時刻とサーバーの受信時刻を分けて持つ。
 書き込みの重複は、端末が作る `client_event_id` の一意制約で防ぐ。
+テーブルは起動時に作る。既存のテーブルに列を足したら、`backend/app/db.py` の `ADDED_COLUMNS` にも書く（起動時に、なければ足す）。
 
 ```mermaid
 erDiagram
@@ -30,13 +31,21 @@ erDiagram
 | テーブル | 主な列 | 備考 |
 |---|---|---|
 | `farms` | `code`, `name` | 経営体 |
-| `users` | `farm_id`, `name`, `role`, `gender`, `worker_type`, `weekly_max_hours`, `pin_hash`, `failed_pin_count`, `locked_until`, `icon`, `active` | `role` は `owner` / `worker`。`active` が偽の人は停止中 |
+| `users` | `farm_id`, `name`, `role`, `gender`, `worker_type`, `weekly_max_hours`, `pin_hash`, `failed_pin_count`, `locked_until`, `icon`, `active` | `role` は `owner` / `worker`。`active` が偽の人は停止中（作業者の削除はこれで行う） |
+
+利用者の項目で選べる値は画面に合わせ、サーバーもこれ以外は受け付けない。
+
+| 列 | 値 |
+|---|---|
+| `gender` | `女` / `男` / `回答しない` |
+| `worker_type` | `後継者さん` / `アルバイト`。`owner` は持たない（空） |
+| `icon` | `default` / `hat` / `scarf` / `glasses`。空は `default` と同じ |
 
 ## 農地
 
 | テーブル | 主な列 | 備考 |
 |---|---|---|
-| `plots` | `farm_id`, `name`, `municipality`, `latitude`, `longitude`, `cultivation_type`, `soil_check_pct`, `soil_dry_raw`, `soil_wet_raw` | 作業する場所。画面では「農園」と表示する。`cultivation_type` は `house` / `open_field`（既定は `open_field`）。`soil_*` は土壌水分の換算と助言に使う |
+| `plots` | `farm_id`, `name`, `municipality`, `latitude`, `longitude`, `cultivation_type`, `soil_check_pct`, `soil_dry_raw`, `soil_wet_raw`, `active` | 作業する場所。画面では「農園」と表示する。`cultivation_type` は `house` / `open_field`（既定は `open_field`）。`soil_*` は土壌水分の換算と助言に使う。`active` が偽の農地は削除済み（一覧に出さず、過去の記録には名前を残す） |
 
 ## 予定と作業
 

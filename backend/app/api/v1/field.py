@@ -20,10 +20,10 @@ JST = timezone(timedelta(hours=9))
     "/plots/summary",
     response_model=list[FieldSummary],
     summary="全農園の状態をまとめて返す",
-    description="農園画面で農園を切り替えるときに使う。",
+    description="農園画面で農園を切り替えるときに使う。削除（停止）した農園は返さない。",
 )
 def list_field_summaries(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
-    plots = db.scalars(select(Plot).where(Plot.farm_id == user.farm_id).order_by(Plot.id))
+    plots = db.scalars(select(Plot).where(Plot.farm_id == user.farm_id, Plot.active.is_(True)).order_by(Plot.id))
     return [field_summary(db, p) for p in plots]
 
 

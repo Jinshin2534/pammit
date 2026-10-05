@@ -7,7 +7,7 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import current_user, get_plot_in_farm
+from app.api.deps import current_user, get_active_plot_in_farm
 from app.core.errors import api_error
 from app.db import get_db
 from app.models import JudgmentParams, Schedule, User, VoiceNote, WorkLog, WorkSession
@@ -73,7 +73,7 @@ def start_session(
         response.status_code = status.HTTP_200_OK
         return _out(existing)
 
-    plot = get_plot_in_farm(db, body.plot_id, user.farm_id)
+    plot = get_active_plot_in_farm(db, body.plot_id, user.farm_id)
     if body.schedule_id is not None:
         schedule = db.get(Schedule, body.schedule_id)
         if schedule is None or schedule.farm_id != user.farm_id:

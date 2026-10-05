@@ -10,7 +10,9 @@ from app.core.errors import api_error
 from app.core.security import create_token, verify_pin
 from app.db import get_db
 from app.models import Farm, User
-from app.schemas.auth import LoginCandidate, LoginRequest, Me, MeUpdate, Role, TokenResponse, UserOut
+from app.schemas.auth import (
+    AssigneeCandidate, LoginCandidate, LoginRequest, Me, MeUpdate, Role, TokenResponse, UserOut,
+)
 
 router = APIRouter(tags=["auth"])
 
@@ -40,8 +42,8 @@ def list_login_candidates(
     response_model=TokenResponse,
     summary="PIN でログインする",
     description=(
-        f"PIN を{settings.pin_max_failures}回続けて間違えると、{settings.pin_lock_minutes}分間ログインできなくなる"
-        "（423 `pin_locked`）。"
+        f"PIN を{settings.pin_max_failures}回続けて間違えると、{settings.pin_lock_minutes}分間ログインできなくなる。"
+        "ロックがかかった回とロック中は 423 `pin_locked`（`detail.locked_until`）を返す。"
     ),
 )
 def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
@@ -53,15 +55,18 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
 
     now = datetime.now(timezone.utc)
     if user.locked_until and user.locked_until > now:
-        api_error(423, "pin_locked", "PIN を続けて間違えたため、しばらくログインできません",
-                  {"locked_until": user.locked_until.isoformat()})
+        _pin_locked(user.locked_until)
 
     if not verify_pin(body.pin, user.pin_hash):
         user.failed_pin_count += 1
-        if user.failed_pin_count >= settings.pin_max_failures:
+        locked = user.failed_pin_count >= settings.pin_max_failures
+        if locked:
             user.failed_pin_count = 0
             user.locked_until = now + timedelta(minutes=settings.pin_lock_minutes)
         db.commit()
+        if locked:
+            # ロックがかかった回から 423 を返し、アプリがすぐ残り時間を出せるようにする
+            _pin_locked(user.locked_until)
         api_error(401, "invalid_pin", "名前か PIN が正しくありません")
 
     user.failed_pin_count = 0
@@ -69,6 +74,11 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     db.commit()
     token, expires_in = create_token(user.id, user.farm_id, user.role)
     return TokenResponse(access_token=token, expires_in=expires_in)
+
+
+def _pin_locked(locked_until: datetime) -> None:
+    api_error(423, "pin_locked", "PIN を続けて間違えたため、しばらくログインできません",
+              {"locked_until": locked_until.isoformat()})
 
 
 def _me(db: Session, user: User) -> Me:
@@ -87,3 +97,17 @@ def update_me(body: MeUpdate, user: User = Depends(current_user), db: Session = 
         setattr(user, field, value)
     db.commit()
     return _me(db, user)
+
+
+@router.get(
+    "/assignee-candidates",
+    response_model=list[AssigneeCandidate],
+    summary="予定の担当者に選べる人",
+    description="ログイン中の農園の、停止していない利用者（owner も含む）。作業者も呼べる。",
+    tags=["users"],
+)
+def list_assignee_candidates(
+    user: User = Depends(current_user), db: Session = Depends(get_db)
+) -> list[AssigneeCandidate]:
+    stmt = select(User).where(User.farm_id == user.farm_id, User.active.is_(True)).order_by(User.id)
+    return [AssigneeCandidate(id=u.id, name=u.name, role=u.role) for u in db.scalars(stmt)]

@@ -36,7 +36,7 @@ npx openapi-typescript openapi.json -o src/api/schema.d.ts
 センサー受信（`sensors` タグ）だけ実装済みで、DB に保存します。それ以外はスタブ応答です。
 AWS 上の構成は [docs/aws.md](../docs/aws.md) を参照。
 
-- テーブルは起動時に自動で作る（`create_all`）。既存テーブルの列変更は反映されないので、本番運用前に Alembic へ移行する
+- テーブルは起動時に自動で作る（`create_all`）。既存テーブルに列を足すときは、`app/db.py` の `ADDED_COLUMNS` にも書く（起動時に、なければ足す）。列の型変更や削除は扱わないので、本番運用前に Alembic へ移行する
 - DB は `DATABASE_URL`（既定はローカルの SQLite `pammit.db`）。docker compose では PostgreSQL を使う
 
 ```bash

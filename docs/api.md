@@ -16,9 +16,16 @@
 
 | ステータス | `code` | アプリでの扱い |
 |---|---|---|
+| 400 | `cannot_demote_self` | 「自分の管理者権限は外せません」と出す |
+| 401 | `invalid_pin` | 「名前か PIN が正しくありません」と出し、PIN を入れ直せるようにする |
 | 401 | `token_expired` | 前回の人の名前を出した PIN 画面に戻る |
-| 423 | `pin_locked` | 残り時間と「別の人でログイン」を出す |
+| 401 | `invalid_token` | 覚えていたログイン情報を消し、名前を選ぶ画面に戻る（停止された人もこれになる） |
+| 401 | `not_logged_in` | 名前を選ぶ画面に戻る |
+| 403 | `owner_only` | 管理者画面を閉じ、「管理者だけが使えます」と出す |
+| 404 | `farm_not_found` | 農園コードを入れ直してもらう |
 | 404 | `plot_not_found` | 覚えていた農地を忘れ、一覧を取り直す |
+| 404 | `user_not_found` | 作業者・担当者の一覧を取り直す |
+| 423 | `pin_locked` | 残り時間（`detail.locked_until` まで）と「別の人でログイン」を出す。5回目に間違えたときから返る |
 | 503 | `ai_unavailable` | 「AI相談は今使えません」と出す |
 
 ## エンドポイント
@@ -30,26 +37,30 @@
 | メソッド | パス | 用途 | 状態 |
 |---|---|---|---|
 | GET | `/auth/users` | ログイン画面で選ぶ名前の一覧（`?farm_code=&role=`） | 実装済み |
-| POST | `/auth/login` | PIN でログイン。5回間違えると15分ロック | 実装済み |
+| POST | `/auth/login` | PIN でログイン。5回間違えると15分ロック（5回目から 423） | 実装済み |
 | GET | `/auth/me` | ログイン中の利用者 | 実装済み |
 | PATCH | `/users/me` | 名前・アイコンの変更 | 実装済み |
-| GET | `/users` | 作業者の一覧（owner） | 実装済み |
+| GET | `/users` | 作業者の一覧（owner）。owner と停止中の人も含め、`active` を返す。画面で絞る | 実装済み |
 | POST | `/users` | 作業者の登録。PIN を発行して返す（owner） | 実装済み |
-| PATCH | `/users/{id}` | 作業者の変更（owner） | 実装済み |
+| PATCH | `/users/{id}` | 作業者の変更（owner）。削除は `active: false`（停止）で行う | 実装済み |
 | POST | `/users/{id}/reset-pin` | PIN の再発行（owner） | 実装済み |
-| GET | `/assignee-candidates` | 予定の担当者に選べる人（停止していない作業者）。`id`・`name`・`role` だけを返す。全員が使える | 予定 |
+| GET | `/assignee-candidates` | 予定の担当者に選べる人（停止していない利用者。owner も含む）。`id`・`name`・`role` だけを返す。全員が使える | 実装済み |
 
 ### 農地
 
 | メソッド | パス | 用途 | 状態 |
 |---|---|---|---|
-| GET | `/plots` | 農地の一覧 | 実装済み |
+| GET | `/plots` | 農地の一覧。削除した農地は返さない | 実装済み |
 | GET | `/plots/{id}` | 農地の詳細 | 実装済み |
 | POST | `/plots` | 農地の登録（owner） | 実装済み |
-| PATCH | `/plots/{id}` | 農地の変更（owner）。ハウス / 露地、土壌水分の目安と校正値も | 実装済み |
-| GET | `/plots/summary` | 全農地の農園画面の中身をまとめて返す（切り替え用） | 実装済み |
+| PATCH | `/plots/{id}` | 農地の変更（owner）。ハウス / 露地、土壌水分の目安と校正値も。削除は `active: false` で行う | 実装済み |
+| GET | `/plots/summary` | 削除していない全農地の農園画面の中身をまとめて返す（切り替え用） | 実装済み |
 | GET | `/plots/{id}/field-summary` | 農園画面の表示内容（土壌水分の現在値・前日差・明日の予測、助言、明日の天気） | 実装済み |
 | GET | `/plots/{id}/sensor-readings` | 測定値の推移。土壌水分は農地の校正値で%に換算 | 実装済み |
+
+削除した農地は、新しい予定・作業の開始・予定の農地の変更では 404 `plot_not_found` になる。
+過去の予定・作業ログ・日誌には名前を残し、`GET /plots/{id}` などの個別の取得はそのまま使える。`active: true` に戻すと元に戻る。
+停止した作業者も同じで、新しく予定の担当者にしようとすると 404 `user_not_found` になり、すでに担当の予定には名前を残す。
 
 ### 予定・今日のひとこと
 
@@ -114,7 +125,6 @@
 
 | 対象 | 変更 |
 |---|---|
-| `GET /users` | 作業者が停止中かどうか（`active`）を返す。停止中の人を予定の担当者にしようとしたら、サーバーでも断る |
 | `GET /schedules` ほか | 予定を作った人（`created_by`）を返す。変更と削除は、作った人と `owner` だけに許す |
 | `GET /work-sessions/{id}` | サーバーが受け取った判定の件数（`take` / `keep` / `unknown`）を返す |
 | `POST /work-sessions/{id}/detections` | 受け取った判定を保存する。最大200件ずつ受け、1件ごとに `accepted` / `duplicated` / `rejected` を返す。送れるのは作業を始めた本人だけ |

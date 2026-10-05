@@ -36,6 +36,46 @@ class PlotTests(unittest.TestCase):
                               json={"cultivation_type": "house", "soil_dry_raw": 3000, "soil_wet_raw": 1200})
         self.assertEqual(r.json()["cultivation_type"], "house")
 
+    def test_deleted_plot_is_hidden_but_keeps_history(self) -> None:
+        farm = make_farm()
+        owner, worker = login(self.client, farm, farm.owner_id), login(self.client, farm, farm.worker_id)
+        plot_id = farm.plot_ids[0]
+        schedule = self.client.post("/api/v1/schedules", headers=worker, json={
+            "client_event_id": str(uuid4()), "plot_id": plot_id, "date": "2026-10-10", "work_types": ["収穫"],
+            "assignee_ids": []}).json()
+        session = self.client.post("/api/v1/work-sessions", headers=worker, json={
+            "client_event_id": str(uuid4()), "plot_id": plot_id, "work_type": "収穫", "started_at": T0}).json()
+        self.client.post(f"/api/v1/work-sessions/{session['id']}/finish", headers=worker, json={"ended_at": T1})
+
+        r = self.client.patch(f"/api/v1/plots/{plot_id}", headers=owner, json={"active": False})
+        self.assertFalse(r.json()["active"])
+
+        # 一覧からは消える
+        self.assertEqual([p["id"] for p in self.client.get("/api/v1/plots", headers=worker).json()], farm.plot_ids[1:])
+        summary = self.client.get("/api/v1/plots/summary", headers=worker).json()
+        self.assertEqual([s["plot_id"] for s in summary], farm.plot_ids[1:])
+        # 新しい作業・予定には使えない
+        r = self.client.post("/api/v1/work-sessions", headers=worker, json={
+            "client_event_id": str(uuid4()), "plot_id": plot_id, "work_type": "収穫", "started_at": T0})
+        self.assertEqual((r.status_code, r.json()["error"]["code"]), (404, "plot_not_found"))
+        r = self.client.post("/api/v1/schedules", headers=worker, json={
+            "client_event_id": str(uuid4()), "plot_id": plot_id, "date": "2026-10-11", "work_types": ["収穫"],
+            "assignee_ids": []})
+        self.assertEqual(r.status_code, 404)
+        # 過去の予定・作業ログには名前が残り、予定のほかの項目も変えられる
+        listed = self.client.get("/api/v1/schedules", headers=worker, params={"from": "2026-10-10", "to": "2026-10-10"})
+        self.assertEqual(listed.json()[0]["plot_name"], "すだち農園")
+        r = self.client.patch(f"/api/v1/schedules/{schedule['id']}", headers=worker,
+                              json={"plot_id": plot_id, "note": "雨なら中止"})
+        self.assertEqual(r.status_code, 200)
+        logs = self.client.get("/api/v1/work-logs", headers=worker).json()
+        self.assertEqual(logs[0]["plot_name"], "すだち農園")
+        self.assertEqual(self.client.get(f"/api/v1/plots/{plot_id}", headers=worker).status_code, 200)
+
+        # 元に戻せる
+        self.client.patch(f"/api/v1/plots/{plot_id}", headers=owner, json={"active": True})
+        self.assertEqual([p["id"] for p in self.client.get("/api/v1/plots", headers=worker).json()], farm.plot_ids)
+
     def test_worker_cannot_create_plot(self) -> None:
         farm = make_farm()
         r = self.client.post("/api/v1/plots", headers=login(self.client, farm, farm.worker_id), json={"name": "x"})
@@ -156,6 +196,20 @@ class ScheduleTests(unittest.TestCase):
         r = self.client.post("/api/v1/schedules", headers=login(self.client, farm, farm.worker_id),
                              json=self.body(farm, assignee_ids=[other.worker_id]))
         self.assertEqual(r.status_code, 404)
+
+    def test_deactivated_user_cannot_be_newly_assigned(self) -> None:
+        farm = make_farm()
+        owner = login(self.client, farm, farm.owner_id)
+        created = self.client.post("/api/v1/schedules", headers=owner, json=self.body(farm)).json()
+        self.client.patch(f"/api/v1/users/{farm.worker_id}", headers=owner, json={"active": False})
+
+        r = self.client.post("/api/v1/schedules", headers=owner, json=self.body(farm))
+        self.assertEqual((r.status_code, r.json()["error"]["code"]), (404, "user_not_found"))
+        # すでに担当の予定では名前が残り、そのまま送り直しても断らない
+        r = self.client.patch(f"/api/v1/schedules/{created['id']}", headers=owner,
+                              json={"note": "変更", "assignee_ids": [farm.worker_id, farm.owner_id]})
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(farm.worker_id, [a["id"] for a in r.json()["assignees"]])
 
     def test_session_can_start_from_schedule(self) -> None:
         farm = make_farm()

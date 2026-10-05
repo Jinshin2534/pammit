@@ -53,7 +53,7 @@ def refresh_forecasts(db: Session, fetch: Callable[[float, float], list[dict]] =
     """全農地の予報を取り込み直し、取り込んだ日数を返す。取れなかった農地は前回の値を残す。"""
     count = 0
     now = datetime.now(timezone.utc)
-    for plot in db.scalars(select(Plot)):
+    for plot in db.scalars(select(Plot).where(Plot.active.is_(True))):
         lat = plot.latitude if plot.latitude is not None else settings.default_latitude
         lon = plot.longitude if plot.longitude is not None else settings.default_longitude
         try:
