@@ -124,7 +124,7 @@ def field_summary(db: Session, plot: Plot, now: datetime | None = None) -> dict:
         },
         "advice": {"rule": advice.rule, "message": advice.message},
         "suggested_schedule": (
-            {"plot_id": plot.id, "date": tomorrow, "start_time": "08:00", "end_time": "09:00",
+            {"plot_id": plot.id, "date": tomorrow, "start_time": time(8), "end_time": time(9),
              "work_types": [IRRIGATION], "note": "土の状態を確認し、灌水するか判断する"}
             if advice.suggest_check and not irrigation_planned else None
         ),

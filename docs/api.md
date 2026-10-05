@@ -22,9 +22,12 @@
 | 401 | `invalid_token` | 覚えていたログイン情報を消し、名前を選ぶ画面に戻る（停止された人もこれになる） |
 | 401 | `not_logged_in` | 名前を選ぶ画面に戻る |
 | 403 | `owner_only` | 管理者画面を閉じ、「管理者だけが使えます」と出す |
+| 403 | `not_your_schedule` | 予定を変える・消すのは作った人と `owner` だけ。ほかの人には編集・削除を出さない |
 | 404 | `farm_not_found` | 農園コードを入れ直してもらう |
 | 404 | `plot_not_found` | 覚えていた農地を忘れ、一覧を取り直す |
 | 404 | `user_not_found` | 作業者・担当者の一覧を取り直す |
+| 422 | `inactive_assignee` | 停止した作業者を予定の担当にしようとした。担当者の候補を取り直す |
+| 422 | `invalid_time_range` | 予定の終了時刻が開始時刻より前か同じ。入力画面で直してもらう |
 | 423 | `pin_locked` | 残り時間（`detail.locked_until` まで）と「別の人でログイン」を出す。5回目に間違えたときから返る |
 | 503 | `ai_unavailable` | 「AI相談は今使えません」と出す |
 
@@ -66,10 +69,10 @@
 
 | メソッド | パス | 用途 | 状態 |
 |---|---|---|---|
-| GET | `/schedules` | 予定の一覧（`?from=&to=&plot_id=`） | 実装済み |
-| POST | `/schedules` | 予定の登録 | 実装済み |
-| PATCH | `/schedules/{id}` | 予定の変更 | 実装済み |
-| DELETE | `/schedules/{id}` | 予定の削除 | 実装済み |
+| GET | `/schedules` | 予定の一覧（`?from=&to=&plot_id=`）。予定を作った人（`created_by` の `id`・`name`）も返す | 実装済み |
+| POST | `/schedules` | 予定の登録。開始と終了の時刻は必須。停止した作業者は担当にできない（`owner` は担当にできる） | 実装済み |
+| PATCH | `/schedules/{id}` | 予定の変更（作った人と `owner`）。時刻は消せない。停止した作業者は、すでに担当なら残せるが新しくは加えられない | 実装済み |
+| DELETE | `/schedules/{id}` | 予定の削除（作った人と `owner`） | 実装済み |
 | GET | `/daily-advice` | 今日のひとこと（`?date=`） | 実装済み |
 
 ### 作業
@@ -125,7 +128,6 @@
 
 | 対象 | 変更 |
 |---|---|
-| `GET /schedules` ほか | 予定を作った人（`created_by`）を返す。変更と削除は、作った人と `owner` だけに許す |
 | `GET /work-sessions/{id}` | サーバーが受け取った判定の件数（`take` / `keep` / `unknown`）を返す |
 | `POST /work-sessions/{id}/detections` | 受け取った判定を保存する。最大200件ずつ受け、1件ごとに `accepted` / `duplicated` / `rejected` を返す。送れるのは作業を始めた本人だけ |
 
