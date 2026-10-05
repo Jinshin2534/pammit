@@ -3,14 +3,21 @@ import { PropsWithChildren, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ApiError } from '@/api/errors';
+import { useWorkOutbox } from '@/api/work-outbox';
 
 import { AppStateProvider } from './app-state';
-import { AuthProvider } from './auth';
+import { AuthProvider, useCurrentUser } from './auth';
 
 // 4xx はやり直しても同じなので、通信の失敗とサーバーの一時的なエラーだけ1回やり直す
 function shouldRetry(failureCount: number, error: unknown) {
   if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false;
   return failureCount < 1;
+}
+
+/** 通信が戻ったら、端末に残した作業の終了と今日の気づきを、どの画面にいても送る */
+function WorkOutboxSync() {
+  useWorkOutbox(useCurrentUser()?.id);
+  return null;
 }
 
 export function AppProviders({ children }: PropsWithChildren) {
@@ -33,6 +40,7 @@ export function AppProviders({ children }: PropsWithChildren) {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <WorkOutboxSync />
           <AppStateProvider>{children}</AppStateProvider>
         </AuthProvider>
       </QueryClientProvider>
