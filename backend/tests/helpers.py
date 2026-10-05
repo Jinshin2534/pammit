@@ -31,8 +31,9 @@ def make_farm(with_params: bool = True) -> TestFarm:
         worker = User(farm_id=farm.id, name="作業者", role="worker", pin_hash=hash_pin(PIN))
         db.add_all([*plots, owner, worker])
         if with_params:
-            db.add(JudgmentParams(farm_id=farm.id, work_type="摘果・摘葉", model_version_expected="v-test",
-                                  confidence_high=0.8, confidence_low=0.5, params={"dense_neighbor_count": 4}))
+            for work_type in ("摘果・摘葉", "収穫"):
+                db.add(JudgmentParams(farm_id=farm.id, work_type=work_type, model_version_expected="v-test",
+                                      confidence_high=0.8, confidence_low=0.5, params={"dense_neighbor_count": 4}))
         db.commit()
         return TestFarm(code, farm.id, [p.id for p in plots], owner.id, worker.id)
 

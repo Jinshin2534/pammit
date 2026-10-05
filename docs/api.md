@@ -23,9 +23,12 @@
 | 401 | `not_logged_in` | 名前を選ぶ画面に戻る |
 | 403 | `owner_only` | 管理者画面を閉じ、「管理者だけが使えます」と出す |
 | 403 | `not_your_schedule` | 予定を変える・消すのは作った人と `owner` だけ。ほかの人には編集・削除を出さない |
+| 403 | `not_schedule_assignee` | 担当でない予定からは始められない。予定を取り直す |
 | 404 | `farm_not_found` | 農園コードを入れ直してもらう |
 | 404 | `plot_not_found` | 覚えていた農地を忘れ、一覧を取り直す |
 | 404 | `user_not_found` | 作業者・担当者の一覧を取り直す |
+| 409 | `session_already_active` | 新しい作業を始めず、`detail.session_id` の作業中の画面に戻る |
+| 409 | `judgment_config_missing` | 帽子を使った判定ができない。「別の作業を選ぶ」か、帽子なしで始め直す |
 | 422 | `inactive_assignee` | 停止した作業者を予定の担当にしようとした。担当者の候補を取り直す |
 | 422 | `invalid_time_range` | 予定の終了時刻が開始時刻より前か同じ。入力画面で直してもらう |
 | 423 | `pin_locked` | 残り時間（`detail.locked_until` まで）と「別の人でログイン」を出す。5回目に間違えたときから返る |
@@ -79,12 +82,12 @@
 
 | メソッド | パス | 用途 | 状態 |
 |---|---|---|---|
-| POST | `/work-sessions` | 作業の開始。帽子で判定する作業では判定の設定を返す | 実装済み |
-| GET | `/work-sessions` | 作業の一覧（`?plot_id=&from=&to=&active=`） | 実装済み |
+| POST | `/work-sessions` | 作業の開始。帽子を使って判定する作業では判定の設定を返す。[作業の始め方](#作業の始め方) | 実装済み |
+| GET | `/work-sessions` | 作業の一覧（`?plot_id=&from=&to=&active=&mine=`）。`mine=true` で自分の作業だけ | 実装済み |
 | GET | `/work-sessions/{id}` | 作業の詳細 | 実装済み |
 | POST | `/work-sessions/{id}/finish` | 作業の終了。作業ログを作る | 実装済み |
-| POST | `/work-sessions/{id}/detections` | 判定結果の登録。形を AI 側と決めている途中 | 仮 |
-| POST | `/work-sessions/{id}/voice-notes` | 「今日の気づき」の音声と、スマートフォンで文字に起こした内容を登録（`multipart/form-data`） | 実装済み |
+| POST | `/work-sessions/{id}/detections` | 判定結果の登録。作業を始めた本人だけ。形を AI 側と決めている途中で、今は保存しない | 仮 |
+| POST | `/work-sessions/{id}/voice-notes` | 「今日の気づき」の音声と、スマートフォンで文字に起こした内容、録音した時刻（`recorded_at`、省くとサーバーの受信時刻）を登録（`multipart/form-data`）。作業を始めた本人だけ | 実装済み |
 | GET | `/work-sessions/{id}/voice-notes` | 「今日の気づき」の一覧と文字起こし | 実装済み |
 | GET | `/work-logs` | 作業ログの一覧（`?plot_id=&user_id=&from=&to=`） | 実装済み |
 
@@ -129,7 +132,25 @@
 | 対象 | 変更 |
 |---|---|
 | `GET /work-sessions/{id}` | サーバーが受け取った判定の件数（`take` / `keep` / `unknown`）を返す |
-| `POST /work-sessions/{id}/detections` | 受け取った判定を保存する。最大200件ずつ受け、1件ごとに `accepted` / `duplicated` / `rejected` を返す。送れるのは作業を始めた本人だけ |
+| `POST /work-sessions/{id}/detections` | 受け取った判定を保存する。最大200件ずつ受け、1件ごとに `accepted` / `duplicated` / `rejected` を返す |
+
+## 作業の始め方
+
+作業はログイン中の人のものになり、作業者を選ぶ手順はない。アプリはログインした直後に `GET /work-sessions?mine=true&active=true` で、終わっていない自分の作業を探す。
+
+`POST /work-sessions` は次の順に確かめる。
+
+1. 同じ `client_event_id` の作業があれば、ほかの確認をせずにそれを 200 で返す（送り直し）
+2. 本人に終わっていない作業があれば 409 `session_already_active`。`detail.session_id` に進めている作業の ID
+3. `schedule_id` があれば、その予定について確かめる
+    - 本人が担当者に入っている、または担当者のない予定であること。違えば 403 `not_schedule_assignee`
+    - `plot_id` が予定の農地と同じであること。違えば 422 `schedule_plot_mismatch`
+    - `work_type` が予定の作業に入っていること。違えば 422 `work_type_not_in_schedule`
+4. 帽子を使って判定する作業（摘果・摘葉、収穫）で `uses_hat` が真なら、判定の設定を `config` で返す。設定がサーバーにないときは 409 `judgment_config_missing` で断る
+
+担当者が複数いる予定は、それぞれが同じ `schedule_id` で自分の作業を始める（1つの予定に作業が複数できる）。
+
+`uses_hat` は既定で真。偽にすると判定する作業でも `config` を返さず、判定の設定がなくても始められる。帽子なしの作業は判定せず、時間の記録だけを残す。判定しない作業では `uses_hat` に関係なく `config` は `null`。
 
 ## 判定の設定の配り方
 

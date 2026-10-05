@@ -48,6 +48,8 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 # モデルに列を足したら、ここにも1行足す。PostgreSQL と SQLite の両方で通る SQL にする
 ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("plots", "active", "BOOLEAN NOT NULL DEFAULT TRUE"),
+    ("work_sessions", "uses_hat", "BOOLEAN NOT NULL DEFAULT TRUE"),
+    ("voice_notes", "recorded_at", "TIMESTAMP WITH TIME ZONE"),
 ]
 
 

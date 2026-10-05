@@ -1,5 +1,6 @@
 import json
 import unittest
+from datetime import datetime
 from types import SimpleNamespace
 from unittest import mock
 from uuid import uuid4
@@ -173,10 +174,39 @@ class VoiceNoteTests(unittest.TestCase):
             "client_event_id": str(uuid4()), "plot_id": farm.plot_ids[1], "work_type": "摘果・摘葉",
             "started_at": "2026-10-04T08:00:00+09:00"}).json()["id"]
 
-    def upload(self, headers, sid, event_id, content_type="audio/mp4", transcript="奥の枝の実は日が当たりにくい。"):
+    def upload(self, headers, sid, event_id, content_type="audio/mp4", transcript="奥の枝の実は日が当たりにくい。", **extra):
         return self.client.post(f"/api/v1/work-sessions/{sid}/voice-notes", headers=headers,
-                                data={"client_event_id": event_id, "transcript": transcript},
+                                data={"client_event_id": event_id, "transcript": transcript, **extra},
                                 files={"file": ("note.m4a", b"fake-audio", content_type)})
+
+    def test_keeps_recorded_at_from_device(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        sid = self.start(farm, headers)
+        r = self.upload(headers, sid, str(uuid4()), recorded_at="2026-10-04T11:40:00+09:00")
+        self.assertEqual(r.status_code, 201)
+        listed = self.client.get(f"/api/v1/work-sessions/{sid}/voice-notes", headers=headers).json()
+        expected = datetime.fromisoformat("2026-10-04T11:40:00+09:00")
+        for note in (r.json(), listed[0]):
+            self.assertEqual(datetime.fromisoformat(note["recorded_at"]), expected)
+
+    def test_recorded_at_defaults_to_server_time(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        r = self.upload(headers, self.start(farm, headers), str(uuid4())).json()
+        self.assertEqual(r["recorded_at"], r["created_at"])
+
+    def test_rejects_recorded_at_without_timezone(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        r = self.upload(headers, self.start(farm, headers), str(uuid4()), recorded_at="2026-10-04T11:40:00")
+        self.assertEqual(r.status_code, 422)
+
+    def test_only_session_owner_can_upload(self) -> None:
+        farm = make_farm()
+        sid = self.start(farm, login(self.client, farm, farm.worker_id))
+        r = self.upload(login(self.client, farm, farm.owner_id), sid, str(uuid4()))
+        self.assertEqual((r.status_code, r.json()["error"]["code"]), (403, "not_your_session"))
 
     def test_upload_saves_transcript_and_adds_knowledge(self) -> None:
         farm = make_farm()

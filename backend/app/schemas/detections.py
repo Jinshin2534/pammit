@@ -85,7 +85,7 @@ class DetectionIn(IdempotentCreate):
 
 
 class DetectionBatch(BaseModel):
-    """**30秒ごとにまとめて送る。** 瞬断しても失われないようにするため。"""
+    """判定のたびにその場で送る。通信が切れていたあいだの分は端末に残し、戻ったら200件ずつ送る。"""
 
     model_config = ConfigDict(
         json_schema_extra={
