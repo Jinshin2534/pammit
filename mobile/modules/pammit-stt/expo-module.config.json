@@ -1,0 +1,12 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["expo.modules.pammitstt.PammitSttModule"],
+    "gradleAarProjects": [
+      {
+        "name": "sherpa-onnx",
+        "aarFilePath": "android/libs/sherpa-onnx-1.13.8.aar"
+      }
+    ]
+  }
+}

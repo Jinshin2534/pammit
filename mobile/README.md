@@ -16,7 +16,13 @@ Android向けのExpo + React Nativeアプリです。Pixel 7aで表示と動作�
 
 ```bash
 npm install
+./scripts/fetch-native-models.sh
+./scripts/fetch-fruit-detector.sh
 ```
+
+`fetch-native-models.sh`は音声認識に使うsherpa-onnxのAARとReazonSpeechモデル（約700MBを取得し、必要な約175MBだけ残す）を`modules/pammit-stt/android/`以下へ置きます。Androidのビルド前に一度実行してください。
+
+`fetch-fruit-detector.sh`は果実検出のモデル3つと試験用の写真を`AI実装計画/ai/`から`modules/pammit-fruit-detector/android/src/main/assets/fruit/`へ写します（場所は`PAMMIT_AI_MODELS_DIR`で変えられます）。あわせてONNX Runtime 1.28.2のJava APIのソースを取得します。sherpa-onnxのAARを使うため、`fetch-native-models.sh`の後に実行してください。JDK 17が必要です。
 
 ## 開発時の確認
 
@@ -59,6 +65,8 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1 npx expo start --dev-clien
 | `src/components/` | 共通コンポーネント |
 | `src/api/` | API通信。`schema.d.ts`はOpenAPIから作った型 |
 | `src/hat/` | 帽子デバイスとの通信 |
+| `src/native/` | 端末内のネイティブ処理（果実検出・音声認識・音声合成）の窓口 |
+| `modules/` | Expoのローカルモジュール（`pammit-fruit-detector`、`pammit-stt`、`pammit-tts`） |
 | `src/storage/` | 端末保存と未送信キュー |
 | `src/providers/` | アプリ全体のProvider（ログインの状態は`auth.tsx`） |
 | `src/lib/` | UUID v4、作業の種類の変換、日時の変換 |
