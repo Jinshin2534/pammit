@@ -87,6 +87,11 @@ export class HatController {
     this.client.stop();
   }
 
+  /** 帽子で文を鳴らす（音声テストなど） */
+  async say(text: string): Promise<void> {
+    await this.speak(text);
+  }
+
   private onEvent(event: HatEvent) {
     switch (event.event) {
       case 'judge':
