@@ -6,6 +6,7 @@ import { PageLayout } from '@/components/layout/page-layout';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { AppText, Card, SmallButton, TextField } from '@/components/ui';
 import { hatController, type HatConnection, type HatSnapshot, type TalkPhase } from '@/hat';
+import { runSelfCheck, type CheckStep } from '@/hat/self-check';
 import { nativeAvailability } from '@/native';
 import { loadSettings, saveSettings } from '@/storage/settings';
 import { colors } from '@/theme/tokens';
@@ -29,6 +30,8 @@ export default function HatDevScreen() {
   const [snapshot, setSnapshot] = useState<HatSnapshot | null>(null);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [steps, setSteps] = useState<CheckStep[]>([]);
 
   useEffect(() => {
     void loadSettings().then((settings) => setIp(settings.hatIp));
@@ -50,6 +53,13 @@ export default function HatDevScreen() {
     }
   };
 
+  const selfCheck = async () => {
+    setChecking(true);
+    setSteps([]);
+    await runSelfCheck((s) => setSteps((current) => [...current, s]));
+    setChecking(false);
+  };
+
   const answer = snapshot?.lastAnswer;
   return (
     <PageLayout testID="dev-hat">
@@ -69,6 +79,16 @@ export default function HatDevScreen() {
         <SmallButton label="切る" variant="secondary" onPress={() => hatController.stop()} />
       </View>
       {error && <AppText style={styles.warning}>{error}</AppText>}
+      <SmallButton label={checking ? '確かめています…' : '帽子なしで確かめる'} variant="secondary" onPress={selfCheck} disabled={checking} />
+      {steps.length > 0 && (
+        <Card>
+          {steps.map((s) => (
+            <AppText key={s.name} variant="caption" style={s.ok ? undefined : styles.warning}>
+              {s.ok ? '○' : '×'} {s.name}（{s.ms} ms）：{s.detail}
+            </AppText>
+          ))}
+        </Card>
+      )}
       <Card>
         <AppText>接続：{snapshot ? connectionLabels[snapshot.connection] : '—'}</AppText>
         <AppText>相談：{snapshot ? talkLabels[snapshot.talk] : '—'}</AppText>
