@@ -29,6 +29,8 @@ type SttNativeModule = {
   load(): Promise<void>;
   unload(): Promise<void>;
   transcribe(wavPath: string): Promise<TranscribeResult>;
+  startRecording(wavPath: string): Promise<void>;
+  stopRecording(): Promise<{ durationMs: number }>;
 };
 
 type TtsNativeModule = {
@@ -74,6 +76,8 @@ export const SpeechToText: SpeechToTextApi = sttNative
       load: () => call(() => sttNative.load()),
       unload: () => call(() => sttNative.unload()),
       transcribe: (wavPath) => call(() => sttNative.transcribe(wavPath)),
+      startRecording: (wavPath) => call(() => sttNative.startRecording(wavPath)),
+      stopRecording: () => call(() => sttNative.stopRecording()),
     }
   : DummySpeechToText;
 

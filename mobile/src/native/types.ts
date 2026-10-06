@@ -106,6 +106,10 @@ export type SpeechToTextApi = {
   load(): Promise<void>;
   unload(): Promise<void>;
   transcribe(wavPath: string): Promise<TranscribeResult>;
+  /** スマホのマイクで録音を始める（16kHz・16bit・モノラルの wav）。マイクの許可は先に求めておく */
+  startRecording(wavPath: string): Promise<void>;
+  /** 録音を止めて、録った長さを返す */
+  stopRecording(): Promise<{ durationMs: number }>;
 };
 
 export type TextToSpeechApi = {

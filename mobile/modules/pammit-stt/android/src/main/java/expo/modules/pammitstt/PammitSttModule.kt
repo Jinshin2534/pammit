@@ -24,6 +24,7 @@ class PammitSttException(code: String, message: String, cause: Throwable? = null
 
 class PammitSttModule : Module() {
   private var recognizer: OfflineRecognizer? = null
+  private var recorder: WavRecorder? = null
   // 読み込み・解放・認識が同時に走らないようにする
   private val mutex = Mutex()
 
@@ -45,7 +46,31 @@ class PammitSttModule : Module() {
       transcribe(wavPath)
     }
 
+    // スマホのマイクで録音を始める（16kHz・16bit・モノラルの wav）。マイクの許可は先に求めておく
+    AsyncFunction("startRecording") Coroutine { wavPath: String ->
+      withContext(Dispatchers.IO) {
+        recorder?.stop()
+        try {
+          recorder = WavRecorder(File(toFilePath(wavPath))).also { it.start() }
+        } catch (e: Exception) {
+          recorder = null
+          throw PammitSttException("INVALID_AUDIO", "録音を始められません: ${e.message}", e)
+        }
+      }
+    }
+
+    // 録音を止めて、録った長さ（ミリ秒）を返す
+    AsyncFunction("stopRecording") Coroutine { ->
+      withContext(Dispatchers.IO) {
+        val r = recorder ?: throw PammitSttException("INVALID_AUDIO", "録音していません")
+        recorder = null
+        mapOf("durationMs" to r.stop())
+      }
+    }
+
     OnDestroy {
+      recorder?.stop()
+      recorder = null
       recognizer?.release()
       recognizer = null
     }

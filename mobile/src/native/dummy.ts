@@ -105,6 +105,13 @@ export const DummySpeechToText: SpeechToTextApi = {
     await wait(400);
     return { text: 'パミット、これ？', durationMs: 1800 };
   },
+  async startRecording() {
+    await wait(100);
+  },
+  async stopRecording() {
+    await wait(100);
+    return { durationMs: 3000 };
+  },
 };
 
 export const DummyTextToSpeech: TextToSpeechApi = {
