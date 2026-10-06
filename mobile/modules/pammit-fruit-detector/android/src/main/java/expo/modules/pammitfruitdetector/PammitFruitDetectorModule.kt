@@ -35,6 +35,9 @@ class PammitFruitException(code: String, message: String, cause: Throwable? = nu
 class PammitFruitDetectorModule : Module() {
   private var detector: FruitYolo? = null
   private var classifier: ShadeClassifier? = null
+  private var leafYolo: LeafYolo? = null
+  private var depth: LeafDepth? = null
+  private var judge: KoreJudge? = null
   // 読み込み・解放・検出が同時に走らないようにする
   private val mutex = Mutex()
 
@@ -55,6 +58,11 @@ class PammitFruitDetectorModule : Module() {
 
     AsyncFunction("detectFile") Coroutine { path: String ->
       detectFile(path)
+    }
+
+    // 帽子の1枚に取る／残すを答える。judging は帽子の判定中（最後の音声を鳴らし終えてから15秒以内）なら true
+    AsyncFunction("judgeFile") Coroutine { path: String, judging: Boolean ->
+      judgeFile(path, judging)
     }
 
     AsyncFunction("sampleImagePath") Coroutine { ->
@@ -85,25 +93,29 @@ class PammitFruitDetectorModule : Module() {
         }
       }
       try {
-        val yolo = FruitYolo(models[0])
-        try {
-          classifier = ShadeClassifier(models[1], models[2])
-        } catch (e: Throwable) {
-          yolo.close()
-          throw e
-        }
-        detector = yolo
+        val yolo = FruitYolo(models[0]).also { detector = it }
+        val shade = ShadeClassifier(models[1], models[2]).also { classifier = it }
+        val leaf = LeafYolo(models[3]).also { leafYolo = it }
+        val leafDepth = LeafDepth(models[4]).also { depth = it }
+        judge = KoreJudge(yolo, shade, leaf, leafDepth)
       } catch (e: Throwable) {
-        throw PammitFruitException("MODEL_LOAD_FAILED", "果実検出モデルを読み込めません: ${e.message}", e)
+        release()
+        throw PammitFruitException("MODEL_LOAD_FAILED", "判定モデルを読み込めません: ${e.message}", e)
       }
     }
   }
 
   private fun release() {
+    judge?.close()
     detector?.close()
     classifier?.close()
+    leafYolo?.close()
+    depth?.close()
+    judge = null
     detector = null
     classifier = null
+    leafYolo = null
+    depth = null
   }
 
   private suspend fun captureAndDetect(hatBaseUrl: String, timeoutMs: Int): Map<String, Any?> =
@@ -127,6 +139,45 @@ class PammitFruitDetectorModule : Module() {
       }
     }
     withContext(Dispatchers.Default) { runPipeline(models, jpeg, capturedAt, 0L) }
+  }
+
+  private suspend fun judgeFile(path: String, judging: Boolean): Map<String, Any?> = mutex.withLock {
+    val kore = judge ?: throw PammitFruitException("MODEL_NOT_LOADED", "判定モデルが読み込まれていません")
+    val jpeg = withContext(Dispatchers.IO) {
+      try {
+        File(toFilePath(path)).readBytes()
+      } catch (e: IOException) {
+        throw PammitFruitException("UNKNOWN", "画像ファイルを読めません: ${e.message}", e)
+      }
+    }
+    withContext(Dispatchers.Default) {
+      val t = SystemClock.elapsedRealtime()
+      val image = decode(jpeg)
+      val decodeMs = SystemClock.elapsedRealtime() - t
+      try {
+        val answer = kore.judge(image, judging)
+        mapOf(
+          "say" to answer.say,
+          "why" to answer.why,
+          "scene" to answer.scene,
+          "mode" to answer.mode,
+          "verdict" to answer.verdict,
+          "fruits" to answer.fruits,
+          "shadedFruits" to answer.shaded,
+          "imageWidth" to image.width,
+          "imageHeight" to image.height,
+          "timingMs" to (mapOf("decode" to decodeMs) + answer.timingMs)
+        )
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: CodedException) {
+        throw e
+      } catch (e: Exception) {
+        throw PammitFruitException("UNKNOWN", "判定に失敗しました: ${e.message}", e)
+      } finally {
+        image.recycle()
+      }
+    }
   }
 
   // 同梱の試験用写真をキャッシュへ書き出して、そのパスを返す（無ければ null）
@@ -311,7 +362,13 @@ class PammitFruitDetectorModule : Module() {
 
   companion object {
     private const val ASSET_DIR = "fruit"
-    private val MODEL_FILES = listOf("fruit-yolo11n.onnx", "scene_encoder.onnx", "shade70.onnx")
+    private val MODEL_FILES = listOf(
+      "fruit-yolo11n.onnx",
+      "scene_encoder.onnx",
+      "shade70.onnx",
+      "leaf-yolo11n-seg.onnx",
+      "depth_anything_v2_small_252.onnx"
+    )
     private const val MODEL_VERSION = "fruit-yolo11n+shade70"
     private const val MIN_WIDTH_RATIO = 0.015f
   }

@@ -6,6 +6,7 @@ import {
   isNativeError,
   type DetectionResult,
   type FruitDetectorApi,
+  type JudgeAnswer,
   type NativeError,
   type SpeechToTextApi,
   type SynthesizeResult,
@@ -21,6 +22,7 @@ type FruitDetectorNativeModule = {
   captureAndDetect(hatBaseUrl: string, timeoutMs: number): Promise<DetectionResult>;
   detectFile(path: string): Promise<DetectionResult>;
   sampleImagePath(): Promise<string | null>;
+  judgeFile(path: string, judging: boolean): Promise<JudgeAnswer>;
 };
 
 type SttNativeModule = {
@@ -63,6 +65,7 @@ export const FruitDetector: FruitDetectorApi = fruitNative
         call(() => fruitNative.captureAndDetect(hatBaseUrl, opts?.timeoutMs ?? DEFAULT_CAPTURE_TIMEOUT_MS)),
       detectFile: (path) => call(() => fruitNative.detectFile(path)),
       sampleImagePath: () => call(() => fruitNative.sampleImagePath()),
+      judgeFile: (path, judging) => call(() => fruitNative.judgeFile(path, judging)),
     }
   : DummyFruitDetector;
 

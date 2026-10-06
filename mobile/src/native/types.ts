@@ -62,6 +62,26 @@ export type DetectionResult = {
   timingMs: { capture: number; decode: number; detect: number; observe: number };
 };
 
+/** 判定の進み方。touch: 触れた葉か実に答えた / guide: 案内モードを始めた / retake: 撮り直しを頼んだ */
+export type JudgeMode = 'touch' | 'guide' | 'retake';
+
+export type JudgeAnswer = {
+  /** 帽子で鳴らす言葉 */
+  say: string;
+  /** 「なんで？」と聞かれたときの理由。無いときは null */
+  why: string | null;
+  /** 場面（contact・above_shaded・fruit_pair など。docs/voice-wording.md の表に対応） */
+  scene: string;
+  mode: JudgeMode;
+  /** 触れたものへの答え。取って → cut、残して → keep。touch 以外は null */
+  verdict: 'cut' | 'keep' | null;
+  fruits: number;
+  shadedFruits: number;
+  imageWidth: number;
+  imageHeight: number;
+  timingMs: Record<string, number>;
+};
+
 export type CaptureOptions = { timeoutMs?: number };
 
 export type TranscribeResult = { text: string; durationMs: number };
@@ -78,6 +98,8 @@ export type FruitDetectorApi = {
   detectFile(path: string): Promise<DetectionResult>;
   /** 同梱の試験用写真のパス。無ければ null */
   sampleImagePath(): Promise<string | null>;
+  /** 帽子の1枚に取る／残すを答える。judging は帽子の判定中（最後の音声を鳴らし終えてから15秒以内）なら true */
+  judgeFile(path: string, judging: boolean): Promise<JudgeAnswer>;
 };
 
 export type SpeechToTextApi = {

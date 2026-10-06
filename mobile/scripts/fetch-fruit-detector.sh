@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# 果実検出（modules/pammit-fruit-detector）のビルドに必要な外部ファイルを用意する。
+# 判定（modules/pammit-fruit-detector）のビルドに必要な外部ファイルを用意する。
 # 先に scripts/fetch-native-models.sh を実行しておくこと（sherpa-onnx のAARを使う）。
 # 用意済みのものは飛ばすので、何度実行してもよい。
+#
+# モデルの取り方は2つ。
+#   PAMMIT_MODELS_URLS=<一覧ファイル>  一覧の URL からダウンロードする。一覧は1行に「ファイル名 SHA-256 URL」
+#   指定なし                          この Mac の AI の作業場所（PAMMIT_AI_MODELS_DIR）からコピーする
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -11,7 +15,15 @@ ASSETS_DIR="$MODULE_DIR/src/main/assets/fruit"
 AI_DIR="$HOME/orca/workspaces/pammit/AI実装計画/ai"
 MODELS_SRC="${PAMMIT_AI_MODELS_DIR:-$AI_DIR/models/mobile}"
 SAMPLE_SRC="${PAMMIT_AI_SAMPLE_IMAGE:-$AI_DIR/data/pilot/P01_0817_0400_frame.jpg}"
-MODEL_FILES=(fruit-yolo11n.onnx scene_encoder.onnx shade70.onnx)
+MODEL_FILES=(fruit-yolo11n.onnx scene_encoder.onnx shade70.onnx leaf-yolo11n-seg.onnx depth_anything_v2_small_252.onnx)
+# AI の作業場所での置き場所（MODELS_SRC からの相対パス）
+model_src_path() {
+  case "$1" in
+    leaf-yolo11n-seg.onnx) echo "leaf/$1" ;;
+    depth_anything_v2_small_252.onnx) echo "depth/$1" ;;
+    *) echo "$1" ;;
+  esac
+}
 
 # sherpa-onnx 1.13.8 が同梱する ONNX Runtime と同じ版
 ORT_VERSION="1.28.2"
@@ -33,16 +45,48 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 
 # モデルと試験用の写真
 mkdir -p "$ASSETS_DIR"
-for file in "${MODEL_FILES[@]}"; do
-  if [[ ! -s "$MODELS_SRC/$file" ]]; then
-    echo "モデルがありません: $MODELS_SRC/$file（PAMMIT_AI_MODELS_DIR で場所を指定できます）" >&2
+if [[ -n "${PAMMIT_MODELS_URLS:-}" ]]; then
+  if [[ ! -f "$PAMMIT_MODELS_URLS" ]]; then
+    echo "モデルの一覧ファイルがありません: $PAMMIT_MODELS_URLS" >&2
     exit 1
   fi
-  if ! cmp -s "$MODELS_SRC/$file" "$ASSETS_DIR/$file"; then
-    cp "$MODELS_SRC/$file" "$ASSETS_DIR/$file"
-  fi
-done
-if [[ -s "$SAMPLE_SRC" ]]; then
+  for file in "${MODEL_FILES[@]}" sample.jpg; do
+    read -r _ expected url < <(awk -v f="$file" '$1 == f { print; exit }' "$PAMMIT_MODELS_URLS") || true
+    if [[ -z "${url:-}" ]]; then
+      [[ "$file" == sample.jpg ]] && { echo "試験用の写真は一覧にないため飛ばします"; continue; }
+      echo "一覧に $file がありません" >&2
+      exit 1
+    fi
+    target="$ASSETS_DIR/$file"
+    if [[ -f "$target" && "$(sha256 "$target")" == "$expected" ]]; then
+      echo "$file は取得済みです"
+    else
+      echo "$file を取得します"
+      curl -fL --retry 3 -o "$TMP_DIR/$file" "$url"
+      actual="$(sha256 "$TMP_DIR/$file")"
+      if [[ "$actual" != "$expected" ]]; then
+        echo "$file のハッシュが一致しません: $actual" >&2
+        exit 1
+      fi
+      mv "$TMP_DIR/$file" "$target"
+    fi
+    unset url expected
+  done
+else
+  for file in "${MODEL_FILES[@]}"; do
+    src="$MODELS_SRC/$(model_src_path "$file")"
+    if [[ ! -s "$src" ]]; then
+      echo "モデルがありません: $src（PAMMIT_AI_MODELS_DIR で場所を指定するか、PAMMIT_MODELS_URLS を使ってください）" >&2
+      exit 1
+    fi
+    if ! cmp -s "$src" "$ASSETS_DIR/$file"; then
+      cp "$src" "$ASSETS_DIR/$file"
+    fi
+  done
+fi
+if [[ -n "${PAMMIT_MODELS_URLS:-}" ]]; then
+  :
+elif [[ -s "$SAMPLE_SRC" ]]; then
   cmp -s "$SAMPLE_SRC" "$ASSETS_DIR/sample.jpg" || cp "$SAMPLE_SRC" "$ASSETS_DIR/sample.jpg"
 else
   echo "試験用の写真がないため飛ばします: $SAMPLE_SRC"

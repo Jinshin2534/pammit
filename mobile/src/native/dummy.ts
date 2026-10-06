@@ -71,6 +71,22 @@ export const DummyFruitDetector: FruitDetectorApi = {
   async sampleImagePath() {
     return null;
   },
+  async judgeFile(_path, judging) {
+    if (!detectorLoaded) throw createNativeError('MODEL_NOT_LOADED', '判定モデルが読み込まれていません');
+    await wait(700);
+    return {
+      say: judging ? '残してください' : 'この辺りは大丈夫です',
+      why: null,
+      scene: judging ? 'other' : 'guide',
+      mode: judging ? 'touch' : 'guide',
+      verdict: judging ? 'keep' : null,
+      fruits: 2,
+      shadedFruits: 1,
+      imageWidth: 1280,
+      imageHeight: 720,
+      timingMs: { total: 700 },
+    };
+  },
 };
 
 let sttLoaded = false;
