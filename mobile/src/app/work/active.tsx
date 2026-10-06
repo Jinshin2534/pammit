@@ -7,6 +7,7 @@ import { Dialog } from '@/components/feedback';
 import { Button } from '@/components/ui';
 import { ActiveWorkHeader, WorkButton, WorkChoice, WorkCounts, WorkPage, workTextStyles } from '@/components/work/figma-work-ui';
 import { parseId } from '@/components/work/work-flow-params';
+import { hatController } from '@/hat';
 import { openWorkChat } from '@/components/work/work-navigation';
 import { toJstTime } from '@/lib/datetime';
 import { fromApiWorkType, isHatWorkType } from '@/lib/work-types';
@@ -43,7 +44,24 @@ export default function ActiveWorkScreen() {
   );
 
   const data = session.data;
-  // 件数は、帽子を使って判定する作業のときだけ出す（判定の送信はまだ作っていないので、件数はダミー）
+  // 帽子を使う作業のあいだ、帽子の判定と相談をこの作業に記録する。判定を送ったら件数を読み直す
+  const hatSessionId = data?.uses_hat && !data.ended_at ? data.id : null;
+  const { refetch } = session;
+  useEffect(() => {
+    if (hatSessionId == null) return;
+    hatController.setWorkSession(hatSessionId);
+    let sent = -1;
+    const unsubscribe = hatController.subscribe((snapshot) => {
+      if (sent >= 0 && snapshot.sentDetections !== sent) void refetch();
+      sent = snapshot.sentDetections;
+    });
+    return () => {
+      unsubscribe();
+      hatController.setWorkSession(null);
+    };
+  }, [hatSessionId, refetch]);
+
+  // 件数は、帽子を使って判定する作業のときだけ出す
   const showCounts = data ? data.uses_hat && isHatWorkType(fromApiWorkType(data.work_type)) : false;
   const offline = !data && isOfflineError(session.error);
   const disconnected = Boolean(data?.uses_hat) && params.hatDisconnected === '1';
@@ -64,7 +82,7 @@ export default function ActiveWorkScreen() {
       ) : showCounts ? (
         <>
           <Text maxFontSizeMultiplier={1.2} style={workTextStyles.bodyLg}>作業ログ</Text>
-          <WorkCounts />
+          <WorkCounts take={data.counts?.take ?? 0} keep={data.counts?.keep ?? 0} unknown={data.counts?.unknown ?? 0} />
           <Text maxFontSizeMultiplier={1.2} style={workTextStyles.bodyLgBold}>{formatElapsed(data.started_at, now)}</Text>
           <WorkChoice label="AI相談ログ" onPress={openLog} />
         </>

@@ -69,7 +69,7 @@ export default function WorkFinishScreen() {
       <View style={styles.confirmation}>
         <View style={styles.copy}>
           <Text maxFontSizeMultiplier={1.2} style={[workTextStyles.bodyLg, styles.center]}>{'本当に作業を\n終わりますか？'}</Text>
-          {showCounts ? <Text maxFontSizeMultiplier={1.2} style={[workTextStyles.body, styles.center]}>切る75 / 残す56 / 判断不可2</Text> : null}
+          {showCounts ? <Text maxFontSizeMultiplier={1.2} style={[workTextStyles.body, styles.center]}>{`切る${data?.counts?.take ?? 0} / 残す${data?.counts?.keep ?? 0} / 判断不可${data?.counts?.unknown ?? 0}`}</Text> : null}
         </View>
         <WorkButton label="作業終了" variant="cta" disabled={sending || !me} onPress={() => void finish()} />
         {message ? <Text accessibilityRole="alert" maxFontSizeMultiplier={1.2} style={[workTextStyles.body, styles.center, styles.error]}>{message}</Text> : null}

@@ -138,7 +138,7 @@ export default function InsightScreen() {
       <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
         <View style={[styles.header, { height: 78 + topOffset, paddingTop: 40 + topOffset }]}>
           <Text maxFontSizeMultiplier={1.2} style={workTextStyles.title}>作業フィニッシュ！</Text>
-          {showCounts ? <Text maxFontSizeMultiplier={1.2} style={workTextStyles.body}>切る75 / 残す56 / 判断不可2</Text> : null}
+          {showCounts ? <Text maxFontSizeMultiplier={1.2} style={workTextStyles.body}>{`切る${data?.counts?.take ?? 0} / 残す${data?.counts?.keep ?? 0} / 判断不可${data?.counts?.unknown ?? 0}`}</Text> : null}
           {params.syncPending === '1' ? <Text maxFontSizeMultiplier={1.2} style={[workTextStyles.body, styles.syncPending]}>同期待ち</Text> : null}
         </View>
         <View style={styles.content}>

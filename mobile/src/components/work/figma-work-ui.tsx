@@ -124,8 +124,8 @@ export function ActiveWorkHeader({ plot, work, compact = false }: { plot: string
   );
 }
 
-export function WorkCounts() {
-  const values = [['75', '切る'], ['56', '残す'], ['2', '判断不可']] as const;
+export function WorkCounts({ take, keep, unknown }: { take: number; keep: number; unknown: number }) {
+  const values = [[String(take), '切る'], [String(keep), '残す'], [String(unknown), '判断不可']] as const;
   return (
     <View style={styles.counts}>
       {values.map(([value, label], index) => (

@@ -9,6 +9,8 @@ export type WorkPlot = Schemas['Plot'];
 export type WorkSessionCreate = Schemas['WorkSessionCreate'];
 export type SessionChatMessage = Schemas['SessionChatMessage'];
 export type VoiceNote = Schemas['VoiceNote'];
+export type DetectionIn = Schemas['DetectionIn'];
+export type DetectionCounts = Schemas['DetectionCounts'];
 
 /** 「今日の気づき」で送るもの。音声は端末にあるファイル */
 export type VoiceNoteUpload = {
@@ -28,6 +30,14 @@ export const workSessionKeys = {
 };
 
 // ---- 関数 ----
+
+/** 帽子の判定を送る。同じ client_event_id は保存し直されない */
+export function postDetections(sessionId: number, detections: DetectionIn[]) {
+  return apiRequest<Schemas['DetectionBatchResult']>(`/work-sessions/${sessionId}/detections`, {
+    method: 'POST',
+    body: { detections },
+  });
+}
 
 /** 終わっていない自分の作業。ログインした直後に呼び、あれば作業中の画面へ戻す */
 export function fetchMyActiveWorkSessions(signal?: AbortSignal) {

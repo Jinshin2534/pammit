@@ -8,6 +8,8 @@
 import { File, Paths } from 'expo-file-system';
 
 import { createChatThread, postChatMessage } from '@/api/chat';
+import { postDetections, type DetectionIn } from '@/api/work-sessions';
+import { uuidV4 } from '@/lib/uuid';
 import { FruitDetector, SpeechToText, type JudgeAnswer } from '@/native';
 import { loadSettings } from '@/storage/settings';
 
@@ -25,10 +27,14 @@ export type HatSnapshot = {
   /** judge を受けてから wav を送り終えるまで */
   lastJudgeMs: number | null;
   lastTranscript: string | null;
+  /** 作業に送った判定の数。増えたら作業中の画面が件数を読み直す */
+  sentDetections: number;
   logs: string[];
 };
 
 const MAX_LOGS = 60;
+// 判定の記録に残す、アプリに入れた判定の版（AI 側の 2026-10-06 版を移したもの）
+const JUDGE_MODEL_VERSION = 'kore-judge-2026-10-06';
 
 export class HatController {
   private client: HatClient;
@@ -39,6 +45,7 @@ export class HatController {
     lastAnswer: null,
     lastJudgeMs: null,
     lastTranscript: null,
+    sentDetections: 0,
     logs: [],
   };
   private nextPlayId = 1;
@@ -49,6 +56,8 @@ export class HatController {
   private talkReplyId: number | null = null;
   private chatThreadId: number | null = null;
   private loaded = false;
+  private workSessionId: number | null = null;
+  private unsentDetections: DetectionIn[] = [];
 
   constructor() {
     this.client = new HatClient({
@@ -85,6 +94,14 @@ export class HatController {
 
   stop() {
     this.client.stop();
+  }
+
+  /** 帽子を使う作業を始めたら呼ぶ。判定の件数と相談をその作業に記録する。終えたら null */
+  setWorkSession(sessionId: number | null) {
+    if (this.workSessionId === sessionId) return;
+    this.workSessionId = sessionId;
+    this.chatThreadId = null;
+    this.unsentDetections = [];
   }
 
   /** 帽子で文を鳴らす（音声テストなど） */
@@ -150,12 +167,16 @@ export class HatController {
       file.write(jpeg);
       const answer = await FruitDetector.judgeFile(file.uri, inJudgeMode);
       this.update({ lastAnswer: answer });
+      if (answer.mode === 'touch') this.record(answer.verdict === 'cut' ? 'take' : 'keep', answer.scene, answer.say);
+      if (answer.mode === 'retake') this.record('unknown', answer.scene, answer.say);
       this.log(`判定（${inJudgeMode ? '判定中' : '最初'}）: ${answer.say}（${answer.scene}、${answer.timingMs.total ?? '?'} ms）`);
       await this.speak(answer.say);
       this.update({ lastJudgeMs: Date.now() - startedAt });
     } catch (error) {
       this.log(`判定に失敗しました: ${describe(error)}`);
-      await this.speak('うまく判定できませんでした。もう一度お願いします').catch(() => undefined);
+      const said = 'うまく判定できませんでした。もう一度お願いします';
+      this.record('unknown', 'judge_failed', said);
+      await this.speak(said).catch(() => undefined);
     } finally {
       this.judging = false;
     }
@@ -190,7 +211,7 @@ export class HatController {
       if (!text.trim()) {
         reply = 'うまく聞き取れませんでした。もう一度お願いします';
       } else {
-        if (this.chatThreadId == null) this.chatThreadId = (await createChatThread()).id;
+        if (this.chatThreadId == null) this.chatThreadId = (await createChatThread(this.workSessionId)).id;
         reply = (await postChatMessage(this.chatThreadId, text)).content;
       }
       if (this.snapshot.talk !== 'thinking') return; // 途中で判定に移った
@@ -212,6 +233,28 @@ export class HatController {
     if (!this.client.play(id, wav)) throw new Error('帽子につながっていません');
     this.log(`声（${sourceLabels[source]}、${Date.now() - startedAt} ms）: ${text}`);
     return id;
+  }
+
+  /** 判定を作業に送る。送れなかった分は次に送るときにまとめて送り直す */
+  private record(verdict: DetectionIn['verdict'], scene: string, said: string) {
+    const sessionId = this.workSessionId;
+    if (sessionId == null) return;
+    this.unsentDetections.push({
+      client_event_id: uuidV4(),
+      detected_at: new Date().toISOString(),
+      verdict,
+      scene,
+      said,
+      model_version: JUDGE_MODEL_VERSION,
+    });
+    const batch = this.unsentDetections.slice(0, 200);
+    void postDetections(sessionId, batch)
+      .then(() => {
+        if (this.workSessionId !== sessionId) return;
+        this.unsentDetections = this.unsentDetections.filter((d) => !batch.includes(d));
+        this.update({ sentDetections: this.snapshot.sentDetections + batch.length });
+      })
+      .catch((error) => this.log(`判定を送れませんでした（あとで送り直します）: ${describe(error)}`));
   }
 
   private async sendVolume() {
