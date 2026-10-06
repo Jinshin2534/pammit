@@ -14,7 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { HeaderBackground } from '@/components/background/header-background';
 import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
+import { Banner } from '@/components/feedback/banner';
 import { Button, Dropdown, DropdownOption, IconButton, TextField } from '@/components/ui';
+import type { TextFieldTextProps } from '@/components/ui/text-field';
 import { colors, fonts, radii, strokes } from '@/theme/tokens';
 
 type AdminPageProps = {
@@ -67,27 +69,34 @@ export function AdminIconButton({ onPress, direction = 'back' }: { onPress: () =
   );
 }
 
-export function AdminButton({ label, onPress, variant = 'primary', size = 'md', fullWidth = false }: { label: string; onPress: () => void; variant?: 'primary' | 'cta'; size?: 'md' | 'lg'; fullWidth?: boolean }) {
-  return <Button label={label} onPress={onPress} variant={variant} size={size} style={fullWidth ? styles.fullWidth : styles.adminButton} />;
+export function AdminButton({ label, onPress, variant = 'primary', size = 'md', fullWidth = false, disabled = false }: { label: string; onPress: () => void; variant?: 'primary' | 'cta'; size?: 'md' | 'lg'; fullWidth?: boolean; disabled?: boolean }) {
+  return <Button label={label} onPress={onPress} variant={variant} size={size} disabled={disabled} style={fullWidth ? styles.fullWidth : styles.adminButton} />;
 }
 
-export function AdminFlowFooter({ onBack, onNext, nextLabel = '確認する', nextVariant = 'primary', backOnly = false }: { onBack: () => void; onNext?: () => void; nextLabel?: string; nextVariant?: 'primary' | 'cta'; backOnly?: boolean }) {
+export function AdminFlowFooter({ onBack, onNext, nextLabel = '確認する', nextVariant = 'primary', backOnly = false, nextDisabled = false }: { onBack: () => void; onNext?: () => void; nextLabel?: string; nextVariant?: 'primary' | 'cta'; backOnly?: boolean; nextDisabled?: boolean }) {
   return (
     <View style={styles.footer}>
       <View style={styles.footerRow}>
         <AdminIconButton onPress={onBack} />
-        {!backOnly && onNext ? <AdminButton label={nextLabel} onPress={onNext} variant={nextVariant} /> : null}
+        {!backOnly && onNext ? <AdminButton label={nextLabel} onPress={onNext} variant={nextVariant} disabled={nextDisabled} /> : null}
       </View>
     </View>
   );
 }
 
-export function AdminTextField({ label, value, onChangeText }: { label: string; value: string; onChangeText: (value: string) => void }) {
-  return <TextField label={label} value={value} onChangeText={onChangeText} />;
+export function AdminTextField({ label, value, onChangeText, placeholder, error, inputProps }: { label: string; value: string; onChangeText: (value: string) => void; placeholder?: string; error?: string; inputProps?: TextFieldTextProps['inputProps'] }) {
+  return <TextField label={label} value={value} onChangeText={onChangeText} placeholder={placeholder} error={error} inputProps={inputProps} />;
 }
 
-export function AdminDropdown({ label, value, options, onChange }: { label: string; value: string; options: readonly DropdownOption[]; onChange: (value: string) => void }) {
-  return <Dropdown label={label} value={[value]} options={options} onChange={(next) => next[0] && onChange(next[0])} />;
+/** value が null のときは何も選んでいない表示（「選んでください」）にする */
+export function AdminDropdown({ label, value, options, onChange }: { label: string; value: string | null; options: readonly DropdownOption[]; onChange: (value: string) => void }) {
+  return <Dropdown label={label} value={value === null ? [] : [value]} options={options} onChange={(next) => next[0] && onChange(next[0])} />;
+}
+
+/** 画面の上に出すエラー。管理者画面はヘッダーの上に置く */
+export function AdminErrorBanner({ message, actionLabel, onAction, testID }: { message: string | null | undefined; actionLabel?: string; onAction?: () => void; testID?: string }) {
+  if (!message) return null;
+  return <Banner kind="network" message={message} actionLabel={actionLabel} onAction={onAction} testID={testID} />;
 }
 
 export function AdminMenuTile({ label, image, onPress }: { label: string; image: number; onPress: () => void }) {

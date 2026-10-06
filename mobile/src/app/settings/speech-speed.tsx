@@ -1,24 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { SettingsFrame } from '@/components/settings/settings-frame';
 import { AppText } from '@/components/ui';
+import { defaultSettings, loadSettings, saveSettings, SpeechSpeed } from '@/storage';
 import { colors, radii } from '@/theme/tokens';
 
-const speeds = ['はやい', 'ふつう', 'ゆっくり', 'すごくゆっくり'] as const;
-type Speed = (typeof speeds)[number];
+const speeds: readonly SpeechSpeed[] = ['はやい', 'ふつう', 'ゆっくり', 'すごくゆっくり'];
 
 export default function SpeechSpeedScreen() {
-  const [speed, setSpeed] = useState<Speed>('ふつう');
+  const [speed, setSpeed] = useState<SpeechSpeed>(defaultSettings.speechSpeed);
   const [saved, setSaved] = useState(false);
 
-  const save = () => {
+  useEffect(() => {
+    void loadSettings().then((settings) => setSpeed(settings.speechSpeed));
+  }, []);
+
+  const save = async () => {
+    await saveSettings({ speechSpeed: speed });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   return (
-    <SettingsFrame onSave={save} saved={saved} testID="speech-speed-screen">
+    <SettingsFrame onSave={() => void save()} saved={saved} testID="speech-speed-screen">
       <AppText variant="title" style={styles.title}>話す速さ</AppText>
       <View accessibilityRole="radiogroup" style={styles.speedList}>
         {speeds.map((label) => {

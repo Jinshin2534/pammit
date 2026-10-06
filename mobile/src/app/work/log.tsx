@@ -1,29 +1,38 @@
-import { router } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { errorMessage, useSessionChatMessages } from '@/api';
 
 import { WorkBackButton, WorkPage, WorkTitleHeader, workTextStyles } from '@/components/work/figma-work-ui';
+import { parseId } from '@/components/work/work-flow-params';
 import { colors, radii } from '@/theme/tokens';
 
-const messages = [
-  { from: 'user', message: 'このすだちはとても形が良くて緑だけど、白く表面が禿げているところが1箇所だけあるの。今回の作業は2Lのみ収穫とのことだったけれど、これはとったほうがいい？' },
-  { from: 'ai', message: '今回が「２Lのみ」という基準で収穫しているのであれば、採っても大丈夫です。それくらいの傷であれば青秀の規格にはなるでしょう。' },
-  { from: 'user', message: 'ではこれも同じくらいの傷だけど採っても大丈夫そう？' },
-  { from: 'ai', message: 'それはとらない方が良い可能性が高いです。それは見えづらいですが、黒いカビがたくさんついています。拭き取ってもまた復活する可能性があります。発送の時に復活すると大変なので、やめておきましょう。' },
-] as const;
-
 export default function WorkAiLogScreen() {
+  const params = useLocalSearchParams<{ sessionId?: string }>();
+  const messages = useSessionChatMessages(parseId(params.sessionId) ?? Number.NaN);
+
   return (
     <WorkPage
       header={<WorkTitleHeader title="AI相談ログ" />}
       footer={<View style={styles.footer}><WorkBackButton onPress={() => router.back()} /></View>}
       scrollable
       testID="work-ai-log-screen">
-      {messages.map((item, index) => <LogBubble key={index} {...item} />)}
+      {messages.isPending ? (
+        <Text maxFontSizeMultiplier={1.2} style={[workTextStyles.body, styles.center]}>読み込んでいます</Text>
+      ) : messages.isError ? (
+        <Pressable accessibilityRole="button" onPress={() => void messages.refetch()} style={({ pressed }) => pressed && styles.pressed}>
+          <Text maxFontSizeMultiplier={1.2} style={[workTextStyles.body, styles.center]}>{`${errorMessage(messages.error)}\n（押すと読み込み直します）`}</Text>
+        </Pressable>
+      ) : messages.data.length === 0 ? (
+        <Text maxFontSizeMultiplier={1.2} style={[workTextStyles.body, styles.center]}>この作業での相談はまだありません</Text>
+      ) : (
+        messages.data.map((item) => <LogBubble key={item.id} from={item.role === 'assistant' ? 'ai' : 'user'} message={item.content} />)
+      )}
     </WorkPage>
   );
 }
 
-function LogBubble({ from, message }: typeof messages[number]) {
+function LogBubble({ from, message }: { from: 'user' | 'ai'; message: string }) {
   const user = from === 'user';
   return (
     <View style={[styles.row, user && styles.userRow]}>
@@ -42,4 +51,6 @@ const styles = StyleSheet.create({
   aiBubble: { backgroundColor: colors.primary, borderBottomRightRadius: radii.md, borderTopLeftRadius: radii.md, borderTopRightRadius: radii.md },
   aiText: { color: colors.textInverse },
   footer: { paddingBottom: 32, paddingHorizontal: 40, paddingTop: 12 },
+  center: { textAlign: 'center' },
+  pressed: { opacity: 0.7 },
 });

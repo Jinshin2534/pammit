@@ -1,8 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 
+import { errorMessage, isOfflineError, useDailyAdvice, useSchedules } from '@/api';
+import type { Schedule } from '@/api/types';
 import { HomePage } from '@/components/home/home-page';
 import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
-import { useAppState } from '@/providers/app-state';
+import { ScheduleDetailSheet, toScheduleCards } from '@/components/schedule';
+import { jstParts, todayJst } from '@/lib/datetime';
+import { useCurrentUser } from '@/providers/auth';
 
 const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/farm' | '/(tabs)/ai' | '/admin'> = {
   home: '/(tabs)',
@@ -12,34 +17,76 @@ const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/far
   admin: '/admin',
 };
 
+const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+const pad = (value: number) => String(value).padStart(2, '0');
+
+/** 日本時間の「2026 / 10 / 10 (土)   12:15」 */
+function formatNow(now: Date) {
+  const { year, month, day, hour, minute, weekday } = jstParts(now);
+  return `${year} / ${pad(month)} / ${pad(day)} (${weekdays[weekday]})   ${pad(hour)}:${pad(minute)}`;
+}
+
+/** 分が変わるたびに今の時刻を更新する */
+function useNow() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      const current = new Date();
+      setNow(current);
+      timer = setTimeout(tick, 60_000 - (current.getSeconds() * 1000 + current.getMilliseconds()) + 50);
+    };
+    tick();
+    return () => clearTimeout(timer);
+  }, []);
+  return now;
+}
+
 export default function HomeScreen() {
   const { offline } = useLocalSearchParams<{
     offline?: string;
   }>();
-  const { schedulesForDate, session } = useAppState();
-  const { role, userName } = session;
-  const todaySchedules = schedulesForDate('2026-10-10');
+  const me = useCurrentUser();
+  const role = me?.role ?? 'worker';
+  const userName = me?.name ?? '';
+  const now = useNow();
+  const today = todayJst(now);
+  const advice = useDailyAdvice(today);
+  const schedules = useSchedules(today, today);
+  const [openScheduleId, setOpenScheduleId] = useState<number | null>(null);
+  const cards = toScheduleCards(schedules.data ?? []);
+  const openSchedule = schedules.data?.find((schedule) => schedule.id === openScheduleId) ?? null;
+  const isOffline = offline === '1' || isOfflineError(advice.error) || isOfflineError(schedules.error);
 
   const navigateTab = (tab: BottomNavTab) => {
     router.navigate({ pathname: routes[tab], params: { role, userName } });
   };
 
+  const editSchedule = (schedule: Schedule) => {
+    setOpenScheduleId(null);
+    router.push({ pathname: '/schedule/new', params: { id: String(schedule.id), date: schedule.date } });
+  };
+
   return (
-    <HomePage
-      userName={userName}
-      advice={{
-        summary: '高温になる前に収穫。実が密集している木から先に切るのがおすすめです。',
-        detail: '日中の気温が上がると、作業する人の負担も大きくなります。午前中など比較的涼しい時間帯に、実が密集している木から確認してみましょう。込み合った部分を先に見ることで、残す実を見比べやすくなり、作業の優先順位も立てやすくなります。\n※最終的な摘果の基準や順番は、農園の状態・栽培方針に合わせて経験者の判断を優先してください。',
-      }}
-      schedules={todaySchedules}
-      offline={offline === '1'}
-      footer={<BottomNav role={role} activeTab="home" onTabPress={navigateTab} />}
-      onAdviceDetail={() => router.push({ pathname: '/home/advice', params: { role, userName } })}
-      onSettings={() => router.push({ pathname: '/(tabs)/settings', params: { role, userName } })}
-      onWorkStart={() => router.push('/work')}
-      onAi={() => router.push({ pathname: '/(tabs)/ai', params: { role, userName } })}
-      onSchedule={() => router.push({ pathname: '/(tabs)/schedule', params: { role, userName } })}
-      onScheduleEdit={(id) => router.push({ pathname: '/schedule/new', params: { id, date: '2026-10-10' } })}
-    />
+    <>
+      <HomePage
+        userName={userName}
+        advice={{
+          summary: advice.data?.summary ?? (advice.isError ? errorMessage(advice.error) : ''),
+          detail: advice.data?.body ?? '',
+        }}
+        now={formatNow(now)}
+        schedules={cards}
+        offline={isOffline}
+        footer={<BottomNav role={role} activeTab="home" onTabPress={navigateTab} />}
+        onAdviceDetail={() => router.push({ pathname: '/home/advice', params: { role, userName } })}
+        onSettings={() => router.push({ pathname: '/(tabs)/settings', params: { role, userName } })}
+        onWorkStart={() => router.push('/work')}
+        onAi={() => router.push({ pathname: '/(tabs)/ai', params: { role, userName } })}
+        onSchedule={() => router.push({ pathname: '/(tabs)/schedule', params: { role, userName } })}
+        onScheduleEdit={(id) => setOpenScheduleId(cards.find((card) => card.id === id)?.scheduleId ?? null)}
+      />
+      <ScheduleDetailSheet schedule={openSchedule} onClose={() => setOpenScheduleId(null)} onEdit={editSchedule} testID="home-schedule-detail" />
+    </>
   );
 }

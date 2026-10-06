@@ -22,7 +22,8 @@ export default function RoleScreen() {
         {'どちらが\nログインしますか？'}
       </AppText>
       <ListItem
-        title="師匠さん"
+        title="師匠農家さん"
+        titleVariant="bodyMd"
         contentAlign="center"
         showChevron={false}
         style={styles.item}
@@ -30,7 +31,9 @@ export default function RoleScreen() {
         testID="role-owner-card"
       />
       <ListItem
-        title="後継者さん"
+        title="後継者さん / アルバイト"
+        titleVariant="bodyMd"
+        fitTitle
         contentAlign="center"
         showChevron={false}
         style={styles.item}
@@ -54,7 +57,7 @@ const styles = {
     borderColor: colors.primary,
     borderWidth: strokes.default,
     height: 100,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingVertical: 13,
     transform: [{ translateY: -4 }],
     width: 280,
