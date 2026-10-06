@@ -1,25 +1,48 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AdminFlowFooter, AdminHeader, AdminIconButton, AdminPage, adminTextStyles } from '@/components/admin/figma-admin-ui';
+import { errorMessage, useFlushJournalDrafts, useJournals, type JournalDay } from '@/api';
+import { AdminErrorBanner, AdminFlowFooter, AdminHeader, AdminIconButton, AdminPage, adminTextStyles } from '@/components/admin/figma-admin-ui';
+import { todayJst } from '@/lib/datetime';
 import { colors, fonts, radii } from '@/theme/tokens';
-import { useAppState } from '@/providers/app-state';
 
-const todayMonth = new Date(2026, 9, 1);
-const maxMonth = new Date(2027, 3, 1);
-const addMonths = (date: Date, amount: number) => new Date(date.getFullYear(), date.getMonth() + amount, 1);
-const dateKey = (date: Date, day: number) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+// 月は日本時間の暦で数える。端末のタイムゾーンに左右されないよう UTC の Date で計算する
+type Month = { year: number; month: number };
+const pad = (value: number) => String(value).padStart(2, '0');
+const addMonths = ({ year, month }: Month, amount: number): Month => {
+  const date = new Date(Date.UTC(year, month - 1 + amount, 1));
+  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1 };
+};
+const daysInMonth = ({ year, month }: Month) => new Date(Date.UTC(year, month, 0)).getUTCDate();
+const weekdayOf = ({ year, month }: Month, day: number) => new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+const dateKey = ({ year, month }: Month, day: number) => `${year}-${pad(month)}-${pad(day)}`;
+const isBefore = (a: Month, b: Month) => a.year * 12 + a.month < b.year * 12 + b.month;
+
+/** 丸を塗る日: 備考があるか、作業があった日 */
+const hasRecord = (day: JournalDay) => Boolean(day.note?.trim()) || day.works.length > 0;
 
 export default function JournalsScreen() {
-  const [month, setMonth] = useState(todayMonth);
-  const { journalEntries } = useAppState();
-  const days = useMemo(() => Array.from({ length: new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate() }, (_, index) => index + 1), [month]);
-  const leadingBlanks = useMemo(() => Array.from({ length: month.getDay() }, (_, index) => index), [month]);
-  const canGoForward = month < maxMonth;
+  const today = todayJst();
+  const thisMonth: Month = { year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) };
+  const [month, setMonth] = useState<Month>(thisMonth);
+  const journals = useJournals(dateKey(month, 1), dateKey(month, daysInMonth(month)));
+  const flushDrafts = useFlushJournalDrafts();
+  const recordDates = useMemo(() => new Set((journals.data ?? []).filter(hasRecord).map((day) => day.date)), [journals.data]);
+  const days = useMemo(() => Array.from({ length: daysInMonth(month) }, (_, index) => index + 1), [month]);
+  const leadingBlanks = useMemo(() => Array.from({ length: weekdayOf(month, 1) }, (_, index) => index), [month]);
+  // 先の月は記録がないので、今月までにする
+  const canGoForward = isBefore(month, thisMonth);
+  const { mutate: flush } = flushDrafts;
+
+  // 送れていない備考があれば送り直す
+  useEffect(() => {
+    flush();
+  }, [flush]);
+
   return (
     <AdminPage
-      header={<><AdminHeader compact title="農園日誌" /><MonthNav month={month} onBack={() => setMonth((current) => addMonths(current, -1))} onForward={() => canGoForward && setMonth((current) => addMonths(current, 1))} canGoForward={canGoForward} /></>}
+      header={<><AdminErrorBanner message={journals.isError ? errorMessage(journals.error) : null} actionLabel="再読み込み" onAction={() => void journals.refetch()} testID="journal-calendar-error" /><AdminHeader compact title="農園日誌" /><MonthNav month={month} onBack={() => setMonth((current) => addMonths(current, -1))} onForward={() => canGoForward && setMonth((current) => addMonths(current, 1))} canGoForward={canGoForward} /></>}
       contentStyle={styles.content}
       footer={<AdminFlowFooter onBack={() => router.back()} onNext={() => router.push('/admin/journals/pdf')} nextLabel="PDFを出力" nextVariant="cta" />}
       testID="journal-calendar-screen">
@@ -27,7 +50,7 @@ export default function JournalsScreen() {
         <View style={styles.weekdays}>{['日', '月', '火', '水', '木', '金', '土'].map((weekday) => <Text key={weekday} maxFontSizeMultiplier={1.2} style={styles.weekday}>{weekday}</Text>)}</View>
         <View style={styles.grid}>
           {leadingBlanks.map((blank) => <View key={`blank-${blank}`} style={styles.calendarDay} />)}
-          {days.map((day) => <CalendarDate key={day} day={day} month={month} hasEntry={journalEntries.some((entry) => entry.date === dateKey(month, day) && entry.note.trim())} />)}
+          {days.map((day) => <CalendarDate key={day} day={day} month={month} isToday={dateKey(month, day) === today} hasEntry={recordDates.has(dateKey(month, day))} />)}
         </View>
       </View>
       <Text maxFontSizeMultiplier={1.2} style={adminTextStyles.caption}>日付を押すと、その日の日誌を見られます</Text>
@@ -35,28 +58,27 @@ export default function JournalsScreen() {
   );
 }
 
-function MonthNav({ month, onBack, onForward, canGoForward }: { month: Date; onBack: () => void; onForward: () => void; canGoForward: boolean }) {
+function MonthNav({ month, onBack, onForward, canGoForward }: { month: Month; onBack: () => void; onForward: () => void; canGoForward: boolean }) {
   return (
     <View style={styles.monthNav}>
       <AdminIconButton onPress={onBack} />
       <View style={styles.monthCopy}>
-        <Text maxFontSizeMultiplier={1.2} style={adminTextStyles.bodyLg}>{month.getFullYear()}年</Text>
-        <Text maxFontSizeMultiplier={1.2} style={styles.month}>{month.getMonth() + 1}月</Text>
+        <Text maxFontSizeMultiplier={1.2} style={adminTextStyles.bodyLg}>{month.year}年</Text>
+        <Text maxFontSizeMultiplier={1.2} style={styles.month}>{month.month}月</Text>
       </View>
       <View style={!canGoForward && styles.disabled}><AdminIconButton direction="forward" onPress={onForward} /></View>
     </View>
   );
 }
 
-function CalendarDate({ day, month, hasEntry }: { day: number; month: Date; hasEntry: boolean }) {
-  const column = new Date(month.getFullYear(), month.getMonth(), day).getDay();
+function CalendarDate({ day, month, hasEntry, isToday }: { day: number; month: Month; hasEntry: boolean; isToday: boolean }) {
+  const column = weekdayOf(month, day);
   const isSunday = column === 0;
   const isSaturday = column === 6;
-  const isToday = month.getFullYear() === 2026 && month.getMonth() === 9 && day === 5;
   const key = dateKey(month, day);
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${month.getMonth() + 1}月${day}日の日誌を見る`} onPress={() => router.push({ pathname: '/admin/journals/day', params: { date: key } })} style={({ pressed }) => [styles.calendarDay, pressed && styles.pressed]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${month.month}月${day}日の日誌を見る`} onPress={() => router.push({ pathname: '/admin/journals/day', params: { date: key } })} style={({ pressed }) => [styles.calendarDay, pressed && styles.pressed]}>
       <View style={styles.dayInner}>
         {isToday ? <View style={styles.selected} /> : null}
         <View style={[styles.pie, hasEntry ? styles.entryDot : styles.emptyDot]} />

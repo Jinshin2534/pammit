@@ -2,13 +2,14 @@ import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
+import { errorMessage, useDailyAdvice } from '@/api';
 import { HeaderBackground } from '@/components/background/header-background';
 import { PageLayout } from '@/components/layout/page-layout';
 import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { AppText } from '@/components/ui';
 import { colors, radii, strokes } from '@/theme/tokens';
-import { useAppState } from '@/providers/app-state';
+import { useCurrentUser } from '@/providers/auth';
 
 const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/farm' | '/(tabs)/ai' | '/admin'> = {
   home: '/(tabs)',
@@ -26,9 +27,13 @@ export default function HomeAdviceScreen() {
     role?: string;
     userName?: string;
   }>();
-  const { session } = useAppState();
-  const role = session.role;
-  const userName = userNameParam ?? session.userName;
+  const me = useCurrentUser();
+  const role = me?.role ?? 'worker';
+  const userName = userNameParam ?? me?.name ?? '';
+  // ホームと同じキーなので、ホームで出した内容をそのまま使う
+  const advice = useDailyAdvice();
+  const summary = advice.data?.summary ?? (advice.isError ? errorMessage(advice.error) : '');
+  const body = advice.data?.body ?? '';
 
   const navigateTab = (tab: BottomNavTab) => {
     router.navigate({ pathname: routes[tab], params: { role, userName } });
@@ -49,15 +54,11 @@ export default function HomeAdviceScreen() {
       <Image source={robot} style={styles.robot} contentFit="contain" accessible={false} />
 
       <View style={styles.summaryCard}>
-        <AppText style={styles.cardText}>
-          高温になる前に摘果。実が密集している木から先に切るのがおすすめです。
-        </AppText>
+        <AppText style={styles.cardText}>{summary}</AppText>
       </View>
 
       <View style={styles.detailCard}>
-        <AppText style={styles.cardText}>
-          {'日中の気温が上がると、作業する人の負担も大きくなります。午前中など比較的涼しい時間帯に、実が密集している木から確認してみましょう。込み合った部分を先に見ることで、残す実を見比べやすくなり、作業の優先順位も立てやすくなります。\n※最終的な摘果の基準や順番は、農園の状態・栽培方針に合わせて経験者の判断を優先してください。'}
-        </AppText>
+        <AppText style={styles.cardText}>{body}</AppText>
       </View>
     </PageLayout>
   );

@@ -49,18 +49,27 @@ npx expo run:android --device
 npx expo start
 ```
 
+接続先は`EXPO_PUBLIC_API_BASE_URL`で切り替えます。未設定なら`src/config/app.ts`の値です。ローカルのバックエンドにUSBの実機からつなぐとき：
+
+```bash
+adb reverse tcp:8000 tcp:8000
+adb reverse tcp:8081 tcp:8081
+EXPO_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1 npx expo start --dev-client --port 8081
+```
+
 ## 主なディレクトリ
 
 | パス | 内容 |
 |---|---|
 | `src/app/` | expo-routerの画面とレイアウト |
 | `src/components/` | 共通コンポーネント |
-| `src/api/` | API通信 |
+| `src/api/` | API通信。`schema.d.ts`はOpenAPIから作った型 |
 | `src/hat/` | 帽子デバイスとの通信 |
 | `src/native/` | 端末内のネイティブ処理（果実検出・音声認識・音声合成）の窓口 |
 | `modules/` | Expoのローカルモジュール（`pammit-fruit-detector`、`pammit-stt`、`pammit-tts`） |
 | `src/storage/` | 端末保存と未送信キュー |
-| `src/providers/` | アプリ全体のProvider |
+| `src/providers/` | アプリ全体のProvider（ログインの状態は`auth.tsx`） |
+| `src/lib/` | UUID v4、作業の種類の変換、日時の変換 |
 | `src/theme/` | 色、余白、フォント、作業の種類ごとの色などのトークン |
 | `src/judge.ts` | 切る・残す・判断不可の判定 |
 | `docs/` | モバイル実装内の設計資料（共通コンポーネントは [docs/component-contracts.md](docs/component-contracts.md)） |
@@ -69,6 +78,32 @@ npx expo start
 果実検出・文字起こし・音声合成のネイティブ部品がまだないときは、同じ型とエラー形式のダミーを使います。
 
 画面の動きと通信が切れたときの扱いは [docs/requirements.md](../docs/requirements.md)、APIは [docs/api.md](../docs/api.md) にあります。
+
+## API のつなぎ方
+
+手本は`src/api/auth.ts`です。リソースごとに1ファイル（`schedules.ts`、`plots.ts`など）を作り、次の順に置きます。
+
+1. キー: `xxxKeys`。`invalidateQueries`や`setQueryData`で使う
+2. 関数: `apiRequest<型>(パス, { method, query, body, signal })`を呼ぶだけにする。型は`src/api/types.ts`に`Schemas['Schedule']`のような短い名前を足して使う
+3. フック: 読むものは`useQuery`、書くものは`useMutation`で包む。書いたあとは関係するキーを`invalidateQueries`する
+
+作ったら`src/api/index.ts`から`export`し、画面は`@/api`から読みます。
+
+- ログイン中の人は`useCurrentUser()`（`@/providers/auth`）で取ります。`id`・`name`・`role`・`icon`・`farm_name`などが入っています。`role`は`user?.role ?? 'worker'`のように使います
+- トークンは`apiRequest`が付けます。`401 token_expired`などと`403 owner_only`は`AuthProvider`がまとめて受け、PIN画面・役割の選択・ホームへ戻すので、画面で扱う必要はありません
+- エラーはすべて`ApiError`（`status`・`code`・`message`・`detail`）になります。`isApiError(error, 'plot_not_found')`で見分け、通信できなかったときは`isOfflineError(error)`が真です（`status`は0）。画面に出す文は`errorMessage(error)`で、通信が切れているときは「この機能には通信が必要です」になります
+- 待ち時間は既定15秒です。AI相談は`timeoutMs: appConfig.aiRequestTimeoutMs`（60秒）を渡します
+- 書き込みの`client_event_id`は`uuidV4()`（`@/lib/uuid`）で作ります。同じ操作を送り直すときは同じIDを使います
+- 作業の種類は、画面と色は英語キー（`thinning`など）、APIは日本語（`摘果・摘葉`など）です。`toApiWorkType`・`fromApiWorkType`（`@/lib/work-types`）で変換します
+- 日時はAPIがタイムゾーン付き（多くはUTC）、画面は日本時間です。`toJstDate`・`toJstTime`・`todayJst`・`jstToIso`、時刻だけの値は`fromApiTime`（"HH:MM:SS"→"HH:MM"）と`toApiTime`を使います（`@/lib/datetime`）
+- 端末に残すものは`src/storage/`に関数を足します。読み書きは`try/catch`で包み、失敗してもアプリが止まらないようにします
+- `src/providers/app-state.tsx`はまだつないでいない画面のためのダミーです。つないだ画面から使わなくし、最後に消します
+
+バックエンドのスキーマが変わったら型を作り直します（`backend/.venv`が必要です）。
+
+```bash
+npm run api:types
+```
 
 ## 画面の作り方
 

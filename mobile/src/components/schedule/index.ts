@@ -8,3 +8,7 @@ export { ScheduleCarousel } from './schedule-carousel';
 export type { ScheduleCarouselItem, ScheduleCarouselProps } from './schedule-carousel';
 export { WorkTypeLegend } from './work-type-legend';
 export type { WorkTypeKey, WorkTypeLegendItem, WorkTypeLegendProps } from './work-type-legend';
+export { ScheduleDetailSheet, canEditSchedule } from './schedule-detail-sheet';
+export type { ScheduleDetailSheetProps } from './schedule-detail-sheet';
+export { MAX_CARD_MEMBERS, memberSummary, scheduleTime, toScheduleCards, workTypesOf } from './schedule-items';
+export type { ScheduleCardItem } from './schedule-items';

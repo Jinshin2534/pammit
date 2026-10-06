@@ -5,7 +5,8 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { SettingsFrame } from '@/components/settings/settings-frame';
 import { AppText, Button, TextField } from '@/components/ui';
 import { colors } from '@/theme/tokens';
-import { useAppState } from '@/providers/app-state';
+import { errorMessage, useUpdateMe, type MeUpdate } from '@/api';
+import { useAuth, useCurrentUser } from '@/providers/auth';
 
 const avatars = [
   { id: 'default', label: 'すだちキャラクター', source: require('../../../assets/images/mascot-sudachi.png'), wide: true },
@@ -15,24 +16,54 @@ const avatars = [
 ] as const;
 
 export default function ProfileScreen() {
-  const { session, updateCurrentProfile } = useAppState();
+  const me = useCurrentUser();
+  const { rememberUser } = useAuth();
+  const updateMe = useUpdateMe();
   const [nameDraft, setNameDraft] = useState<string | null>(null);
   const [avatarDraft, setAvatarDraft] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const name = nameDraft ?? session.userName;
-  const avatarId = avatarDraft ?? session.avatarId ?? 'default';
+  const name = nameDraft ?? me?.name ?? '';
+  const avatarId = avatarDraft ?? me?.icon ?? 'default';
   const avatarIndex = Math.max(0, avatars.findIndex((item) => item.id === avatarId));
   const avatar = avatars[avatarIndex];
 
+  // Figma に保存ボタンはないので、名前は入力を終えたとき、アイコンは選んだときに保存する
+  const save = (patch: { name?: string; icon?: (typeof avatars)[number]['id'] }) => {
+    // 名前を空にしたまま離れたら、元の名前に戻す
+    if (patch.name !== undefined && !patch.name.trim()) setNameDraft(null);
+    const body: MeUpdate = {
+      ...(patch.name !== undefined && patch.name.trim() && patch.name.trim() !== me?.name ? { name: patch.name.trim() } : {}),
+      ...(patch.icon !== undefined && patch.icon !== (me?.icon ?? 'default') ? { icon: patch.icon } : {}),
+    };
+    if (Object.keys(body).length === 0) return;
+    setSaveError(null);
+    updateMe.mutate(body, {
+      onSuccess: (updated) => {
+        if (body.name !== undefined) setNameDraft(null);
+        if (body.icon !== undefined) setAvatarDraft(null);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+        void rememberUser(updated);
+      },
+      onError: (error) => setSaveError(errorMessage(error)),
+    });
+  };
+
   return (
     <SettingsFrame
-      onSave={() => { updateCurrentProfile({ name, avatarId: avatar.id }); setSaved(true); }}
-      saveDisabled={!name.trim()}
       saved={saved}
+      errorMessage={saveError}
       testID="profile-screen">
       <AppText variant="title" style={styles.title}>プロフィール</AppText>
-      <TextField label="名前" value={name} onChangeText={(value) => { setNameDraft(value); setSaved(false); }} testID="profile-name" />
+      <TextField
+        label="名前"
+        value={name}
+        onChangeText={(value) => { setNameDraft(value); setSaved(false); }}
+        inputProps={{ maxLength: 100, onBlur: () => save({ name }), onSubmitEditing: () => save({ name }) }}
+        testID="profile-name"
+      />
       <View style={styles.iconField}>
         <AppText variant="bodyLg" style={styles.iconLabel}>アイコン</AppText>
         <View style={styles.iconFrame}>
@@ -57,6 +88,7 @@ export default function ProfileScreen() {
                     setAvatarDraft(item.id);
                     setSaved(false);
                     setPickerOpen(false);
+                    save({ icon: item.id });
                   }}
                   style={[styles.avatarOption, index === avatarIndex && styles.avatarOptionSelected]}>
                   <Image source={item.source} style={styles.avatarThumb} contentFit="contain" accessible={false} />

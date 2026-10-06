@@ -5,11 +5,12 @@ import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HeaderBackground } from '@/components/background/header-background';
+import { TopBanner } from '@/components/feedback/top-banner';
 import { PageLayout } from '@/components/layout/page-layout';
 import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
 import { AppText, Button } from '@/components/ui';
 import { colors, radii } from '@/theme/tokens';
-import { useAppState } from '@/providers/app-state';
+import { useCurrentUser } from '@/providers/auth';
 
 const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/farm' | '/(tabs)/ai' | '/admin'> = {
   home: '/(tabs)',
@@ -25,14 +26,21 @@ export type SettingsFrameProps = {
   saveDisabled?: boolean;
   saved?: boolean;
   contentStyle?: ViewStyle;
+  /** 保存できなかったときなど。画面上部の赤いバナーに出す */
+  errorMessage?: string | null;
   testID: string;
 };
 
-export function SettingsFrame({ children, onSave, saveDisabled = false, saved = false, contentStyle, testID }: SettingsFrameProps) {
+export function SettingsFrame({ children, onSave, saveDisabled = false, saved = false, contentStyle, errorMessage, testID }: SettingsFrameProps) {
   return (
     <PageLayout
       background={<HeaderBackground position="center" />}
-      header={<SettingsTopBar />}
+      header={
+        <View>
+          {errorMessage ? <TopBanner kind="network" message={errorMessage} testID={`${testID}-error`} /> : null}
+          <SettingsTopBar />
+        </View>
+      }
       footer={<SettingsFooter onSave={onSave} saveDisabled={saveDisabled} saved={saved} />}
       variant="centered"
       scrollable={false}
@@ -64,13 +72,13 @@ function SettingsTopBar() {
 }
 
 function SettingsFooter({ onSave, saveDisabled, saved }: Pick<SettingsFrameProps, 'onSave' | 'saveDisabled' | 'saved'>) {
-  const { session } = useAppState();
+  const role = useCurrentUser()?.role ?? 'worker';
   return (
     <View style={[styles.footer, onSave && styles.footerWithSave]}>
       {onSave && (
         <Button label="保存" variant="cta" size="md" disabled={saveDisabled} onPress={onSave} style={styles.saveButton} testID="settings-save" />
       )}
-      <BottomNav role={session.role} onTabPress={(tab) => router.navigate(routes[tab])} testID="settings-bottom-nav" />
+      <BottomNav role={role} onTabPress={(tab) => router.navigate(routes[tab])} testID="settings-bottom-nav" />
       {saved && (
         <View accessibilityRole="alert" style={styles.toast} testID="settings-saved-toast">
           <AppText variant="bodyBold" style={styles.toastText}>保存しました</AppText>

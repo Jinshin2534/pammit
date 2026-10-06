@@ -8,7 +8,7 @@ import { PageLayout } from '@/components/layout/page-layout';
 import { BottomNav, BottomNavTab } from '@/components/navigation/bottom-nav';
 import { ScreenHeader } from '@/components/navigation/screen-header';
 import { ListItem } from '@/components/ui';
-import { useAppState } from '@/providers/app-state';
+import { useAuth, useCurrentUser } from '@/providers/auth';
 
 const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/farm' | '/(tabs)/ai' | '/admin'> = {
   home: '/(tabs)',
@@ -19,8 +19,16 @@ const routes: Record<BottomNavTab, '/(tabs)' | '/(tabs)/schedule' | '/(tabs)/far
 };
 
 export default function SettingsScreen() {
-  const { session } = useAppState();
+  const role = useCurrentUser()?.role ?? 'worker';
+  const { signOut } = useAuth();
   const [logoutOpen, setLogoutOpen] = useState(false);
+
+  const logout = async () => {
+    setLogoutOpen(false);
+    await signOut();
+    if (router.canDismiss()) router.dismissAll();
+    router.replace('/(auth)/role');
+  };
 
   return (
     <PageLayout
@@ -28,7 +36,7 @@ export default function SettingsScreen() {
       header={<ScreenHeader title="設定" />}
       footer={
         <BottomNav
-          role={session.role}
+          role={role}
           onTabPress={(tab) => router.navigate(routes[tab])}
           testID="settings-bottom-nav"
         />
@@ -48,7 +56,7 @@ export default function SettingsScreen() {
         title="ログアウトしますか？"
         confirmLabel="はい"
         cancelLabel="戻る"
-        onConfirm={() => router.replace('/(auth)/role')}
+        onConfirm={() => void logout()}
         onCancel={() => setLogoutOpen(false)}
       />
     </PageLayout>

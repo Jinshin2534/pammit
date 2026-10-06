@@ -5,20 +5,20 @@ import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
+import { errorMessage, useSchedules } from '@/api';
+import type { Schedule } from '@/api/types';
 import { BottomNav } from '@/components/navigation/bottom-nav';
-import { ScheduleCarousel, WorkTypeLegend } from '@/components/schedule';
+import { ScheduleCarousel, ScheduleDetailSheet, toScheduleCards, workTypesOf, WorkTypeLegend } from '@/components/schedule';
 import { AppText, Button } from '@/components/ui';
-import { useAppState } from '@/providers/app-state';
+import { workTypeKeys, workTypeLabel } from '@/lib/work-types';
+import { useCurrentUser } from '@/providers/auth';
 import { colors, fonts, radii, workTypeColors } from '@/theme/tokens';
 
 const routes = { home: '/(tabs)', schedule: '/(tabs)/schedule', farm: '/(tabs)/farm', ai: '/(tabs)/ai', admin: '/admin' } as const;
 type WorkKey = keyof typeof workTypeColors;
 
-const octoberWorkByDay: Record<number, WorkKey[]> = {
-  1: ['other', 'harvest'], 2: ['other', 'harvest'], 3: ['other', 'harvest'],
-  4: ['other', 'harvest'], 6: ['other', 'harvest'], 7: ['mow', 'other'],
-  8: ['other', 'harvest'], 9: ['other', 'harvest'], 10: ['spray', 'harvest'],
-};
+// 凡例は8種類。「その他」を最後にする
+const legendItems = [...workTypeKeys.filter((key) => key !== 'other'), 'other' as const].map((type) => ({ type, label: workTypeLabel(type) }));
 
 function dateKey(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -57,26 +57,45 @@ function Day({ day, firstWeekday, selected, types, onPress }: { day: number; fir
 
 export default function ScheduleScreen() {
   const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
-  const { schedules, schedulesForDate, session } = useAppState();
+  const role = useCurrentUser()?.role ?? 'worker';
   const today = useMemo(() => new Date(), []);
   const latestMonth = useMemo(() => addMonths(startOfMonth(today), 6), [today]);
   const requestedDate = useMemo(() => dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? new Date(`${dateParam}T12:00:00`) : null, [dateParam]);
   const [month, setMonth] = useState(() => startOfMonth(requestedDate ?? today));
-  const [day, setDay] = useState(() => requestedDate?.getDate() ?? Math.min(10, new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()));
+  const [day, setDay] = useState(() => (requestedDate ?? today).getDate());
+  const [openScheduleId, setOpenScheduleId] = useState<number | null>(null);
   const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
   const leadingBlankDays = month.getDay();
   const canMoveNext = month.getTime() < latestMonth.getTime();
   const selectedDate = new Date(month.getFullYear(), month.getMonth(), day);
   const weekday = ['日', '月', '火', '水', '木', '金', '土'][selectedDate.getDay()];
   const selectedDateKey = dateKey(month.getFullYear(), month.getMonth() + 1, day);
-  const daySchedules = schedulesForDate(selectedDateKey);
-  const isFigmaMonth = month.getFullYear() === 2026 && month.getMonth() === 9;
 
-  const workTypesForDay = (dayNumber: number) => {
-    const key = dateKey(month.getFullYear(), month.getMonth() + 1, dayNumber);
-    const saved = schedules.filter((schedule) => schedule.date === key).map((schedule) => schedule.workType);
-    const base = isFigmaMonth ? (octoberWorkByDay[dayNumber] ?? []) : [];
-    return [...new Set([...base, ...saved])] as WorkKey[];
+  // ほかの画面から date を付けて開き直したときは、その日を選ぶ
+  const [syncedDate, setSyncedDate] = useState(requestedDate);
+  if (requestedDate !== syncedDate) {
+    setSyncedDate(requestedDate);
+    if (requestedDate) {
+      setMonth(startOfMonth(requestedDate));
+      setDay(requestedDate.getDate());
+    }
+  }
+
+  const monthQuery = useSchedules(dateKey(month.getFullYear(), month.getMonth() + 1, 1), dateKey(month.getFullYear(), month.getMonth() + 1, daysInMonth));
+  const schedulesByDate = useMemo(() => {
+    const byDate = new Map<string, Schedule[]>();
+    for (const schedule of monthQuery.data ?? []) byDate.set(schedule.date, [...(byDate.get(schedule.date) ?? []), schedule]);
+    return byDate;
+  }, [monthQuery.data]);
+  const daySchedules = schedulesByDate.get(selectedDateKey) ?? [];
+  const dayCards = toScheduleCards(daySchedules);
+  const openSchedule = monthQuery.data?.find((schedule) => schedule.id === openScheduleId) ?? null;
+
+  const workTypesForDay = (dayNumber: number): WorkKey[] => workTypesOf(schedulesByDate.get(dateKey(month.getFullYear(), month.getMonth() + 1, dayNumber)) ?? []);
+
+  const editSchedule = (schedule: Schedule) => {
+    setOpenScheduleId(null);
+    router.push({ pathname: '/schedule/new', params: { id: String(schedule.id), date: schedule.date } });
   };
 
   const moveMonth = (amount: number) => {
@@ -106,31 +125,28 @@ export default function ScheduleScreen() {
             {Array.from({ length: leadingBlankDays }, (_, index) => <View key={'blank-' + index} style={styles.day} />)}
             {Array.from({ length: daysInMonth }, (_, index) => <Day key={index + 1} day={index + 1} firstWeekday={leadingBlankDays} selected={day === index + 1} types={workTypesForDay(index + 1)} onPress={() => setDay(index + 1)} />)}
           </View>
-          <WorkTypeLegend items={[
-            { type: 'thinning', label: '摘果・摘葉' }, { type: 'harvest', label: '収穫' },
-            { type: 'irrigate', label: '灌水' }, { type: 'spray', label: '防除' },
-            { type: 'fertilize', label: '肥料' }, { type: 'mow', label: '草刈り' },
-            { type: 'other', label: 'その他' },
-          ]} />
+          <WorkTypeLegend items={legendItems} />
         </View>
 
         <View style={styles.daySchedule}>
           <AppText variant="bodyLgBold">{month.getMonth() + 1}月{day}日（{weekday}）の予定</AppText>
-          {!daySchedules.length ? <View style={styles.empty}>
+          {monthQuery.isError && !monthQuery.data ? <AppText style={styles.error}>{errorMessage(monthQuery.error)}</AppText> : null}
+          {!dayCards.length ? <View style={styles.empty}>
             <Image source={require('../../../assets/images/empty-schedule-character-2.png')} contentFit="cover" style={styles.emptyCharacter} />
             <View style={styles.emptyMessage}>
               <AppText>まだ予定はありません</AppText>
               <Button label="予定を入れる" variant="secondary" size="md" onPress={() => router.push({ pathname: '/schedule/new', params: { date: selectedDateKey } })} style={styles.emptyButton} />
             </View>
           </View> : <ScheduleCarousel
-            schedules={daySchedules}
+            schedules={dayCards}
             addLabel="＋予定の追加"
             onAdd={() => router.push({ pathname: '/schedule/new', params: { date: selectedDateKey } })}
-            onSchedulePress={(id) => router.push({ pathname: '/schedule/new', params: { date: selectedDateKey, id } })}
+            onSchedulePress={(id) => setOpenScheduleId(dayCards.find((card) => card.id === id)?.scheduleId ?? null)}
           />}
         </View>
       </ScrollView>
-      <BottomNav role={session.role} activeTab="schedule" onTabPress={(tab) => router.navigate(routes[tab])} />
+      <ScheduleDetailSheet schedule={openSchedule} onClose={() => setOpenScheduleId(null)} onEdit={editSchedule} testID="schedule-detail-sheet" />
+      <BottomNav role={role} activeTab="schedule" onTabPress={(tab) => router.navigate(routes[tab])} />
     </SafeAreaView>
   </View>;
 }
@@ -167,5 +183,6 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', flexDirection: 'row', gap: 12, paddingRight: 16 },
   emptyCharacter: { height: 80, width: 118 },
   emptyMessage: { flex: 1, gap: 8 },
+  error: { color: colors.cta },
   emptyButton: { alignSelf: 'stretch', height: 48, width: '100%' },
 });

@@ -77,9 +77,25 @@ def load_aws_secrets(s: Settings) -> None:
         app_secret = json.loads(client.get_secret_value(SecretId=s.app_secret_id)["SecretString"])
         s.jwt_secret = app_secret["jwt_secret"]
     if s.openai_api_key is None:
-        value = client.get_secret_value(SecretId=s.openai_secret_id)["SecretString"].strip()
-        # キーが入るまでは CDK が作った仮の値が入っている
-        s.openai_api_key = value if value.startswith("sk-") else None
+        s.openai_api_key = parse_openai_secret(client.get_secret_value(SecretId=s.openai_secret_id)["SecretString"])
+
+
+def parse_openai_secret(raw: str) -> str | None:
+    """Secrets Manager の値から OpenAI のキーを取り出す。キーでなければ None。
+
+    キーが入るまでは CDK が作った仮の値が入っている。コンソールなどから入れると
+    `"sk-..."` のように引用符ごと保存されることがあるので、外してから確かめる。
+    """
+    value = raw.strip()
+    if value.startswith('"'):
+        try:
+            value = json.loads(value)
+        except ValueError:
+            return None
+        if not isinstance(value, str):
+            return None
+        value = value.strip()
+    return value if value.startswith("sk-") else None
 
 
 settings = Settings()
