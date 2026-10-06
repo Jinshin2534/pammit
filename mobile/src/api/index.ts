@@ -8,6 +8,7 @@ export * from './work-outbox';
 export * from './chat';
 export * from './field';
 export * from './journals';
+export * from './speech';
 export * from './users';
 export * from './work-sessions';
 export { apiRequest } from './client';

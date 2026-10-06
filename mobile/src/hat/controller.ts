@@ -8,12 +8,13 @@
 import { File, Paths } from 'expo-file-system';
 
 import { createChatThread, postChatMessage } from '@/api/chat';
-import { FruitDetector, SPEECH_RATES, SpeechToText, TextToSpeech, type JudgeAnswer } from '@/native';
-import { loadSettings, type SpeechSpeed } from '@/storage/settings';
+import { FruitDetector, SpeechToText, type JudgeAnswer } from '@/native';
+import { loadSettings } from '@/storage/settings';
 
 import { pcmToWav, VoiceActivity } from './audio';
 import { HatClient, type HatConnection } from './client';
 import { JUDGE_MODE_MS, type HatBinary, type HatEvent } from './protocol';
+import { prepareFixedPhrases, voiceFor } from './voice';
 
 export type TalkPhase = 'off' | 'listening' | 'thinking' | 'speaking';
 
@@ -25,13 +26,6 @@ export type HatSnapshot = {
   lastJudgeMs: number | null;
   lastTranscript: string | null;
   logs: string[];
-};
-
-const speedToRate: Record<SpeechSpeed, number> = {
-  はやい: SPEECH_RATES.fast,
-  ふつう: SPEECH_RATES.normal,
-  ゆっくり: SPEECH_RATES.slow,
-  すごくゆっくり: SPEECH_RATES.verySlow,
 };
 
 const MAX_LOGS = 60;
@@ -62,7 +56,10 @@ export class HatController {
       onBinary: (binary) => this.onBinary(binary),
       onConnection: (connection) => {
         this.update({ connection });
-        if (connection === 'connected') void this.sendVolume();
+        if (connection === 'connected') {
+          void this.sendVolume();
+          void prepareFixedPhrases().then((n) => this.log(`決まった言葉の声を${n}個つくりました`));
+        }
         if (connection === 'disconnected') this.endTalk();
       },
       onLog: (message) => this.log(message),
@@ -202,13 +199,13 @@ export class HatController {
     }
   }
 
-  /** 読み上げの wav を作って帽子で鳴らす。送った play の id を返す */
+  /** 声の wav を帽子で鳴らす。送った play の id を返す */
   private async speak(text: string): Promise<number> {
-    const { speechSpeed } = await loadSettings();
-    const { wavPath } = await TextToSpeech.synthesize(text, { rate: speedToRate[speechSpeed] });
-    const wav = await new File(toUri(wavPath)).bytes();
+    const startedAt = Date.now();
+    const { wav, source } = await voiceFor(text);
     const id = this.nextPlayId++;
     if (!this.client.play(id, wav)) throw new Error('帽子につながっていません');
+    this.log(`声（${sourceLabels[source]}、${Date.now() - startedAt} ms）: ${text}`);
     return id;
   }
 
@@ -228,9 +225,7 @@ export class HatController {
   }
 }
 
-function toUri(path: string) {
-  return path.startsWith('file://') ? path : `file://${path}`;
-}
+const sourceLabels = { cache: 'つくり置き', aws: 'AWS', device: '端末の読み上げ' } as const;
 
 function describe(error: unknown) {
   return error instanceof Error ? error.message : String(error);

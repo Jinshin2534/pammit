@@ -17,6 +17,8 @@ export type ApiRequestOptions = {
   auth?: boolean;
   /** TanStack Query の queryFn に渡される signal をそのまま渡す */
   signal?: AbortSignal;
+  /** bytes で本文をそのまま Uint8Array で返す（音声など） */
+  responseType?: 'json' | 'bytes';
 };
 
 /** ログインが切れた・権限がないときに、アプリ全体で画面を戻すためのエラー */
@@ -65,7 +67,7 @@ async function readError(response: Response): Promise<ApiError> {
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const { method = 'GET', query, body, timeoutMs = appConfig.requestTimeoutMs, auth = true, signal } = options;
+  const { method = 'GET', query, body, timeoutMs = appConfig.requestTimeoutMs, auth = true, signal, responseType = 'json' } = options;
 
   // 呼び出し元の取り消し（画面を離れたなど）と時間切れを1つの signal にまとめる
   const controller = new AbortController();
@@ -78,7 +80,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   if (signal?.aborted) controller.abort();
   signal?.addEventListener('abort', abortFromCaller);
 
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = { Accept: responseType === 'bytes' ? '*/*' : 'application/json' };
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
   if (auth && authToken) headers.Authorization = `Bearer ${authToken}`;
@@ -109,6 +111,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     throw error;
   }
   if (response.status === 204) return undefined as T;
+  if (responseType === 'bytes') return new Uint8Array(await response.arrayBuffer()) as T;
   const text = await response.text();
   return (text ? JSON.parse(text) : undefined) as T;
 }
