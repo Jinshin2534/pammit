@@ -112,6 +112,8 @@ export class PammitStack extends cdk.Stack {
     openAiSecret.grantRead(role);
     imageParam.grantRead(role);
     bucket.grantReadWrite(role);
+    // 帽子で鳴らす声（POST /api/v1/speech）
+    role.addToPolicy(new iam.PolicyStatement({ actions: ['polly:SynthesizeSpeech'], resources: ['*'] }));
 
     // 固定IP。インスタンスより先に作り、ドメイン名（sslip.io）に使う
     const eip = new ec2.CfnEIP(this, 'ApiEip', { domain: 'vpc' });
