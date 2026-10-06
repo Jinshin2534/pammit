@@ -8,6 +8,7 @@ from app.api.deps import current_user
 from app.db import get_db
 from app.models import User, WorkLog
 from app.schemas.worklogs import WorkLog as WorkLogOut
+from app.services import detections
 
 router = APIRouter(prefix="/work-logs", tags=["work-logs"])
 
@@ -35,11 +36,14 @@ def list_work_logs(
         stmt = stmt.where(WorkLog.worked_on >= date_from)
     if date_to:
         stmt = stmt.where(WorkLog.worked_on <= date_to)
+    logs = list(db.scalars(stmt.limit(500)))
+    counts = detections.counts(db, [w.session_id for w in logs])
     return [
         WorkLogOut(
             id=w.id, session_id=w.session_id, plot_id=w.plot_id, plot_name=w.plot.name, user_id=w.user_id,
             user_name=w.user.name, work_type=w.work_type, worked_on=w.worked_on, started_at=w.started_at,
             ended_at=w.ended_at, minutes=round((w.ended_at - w.started_at).total_seconds() / 60),
+            counts=counts[w.session_id],
         )
-        for w in db.scalars(stmt.limit(500))
+        for w in logs
     ]

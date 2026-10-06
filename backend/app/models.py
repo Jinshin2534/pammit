@@ -186,6 +186,27 @@ class WorkSession(Base):
     plot: Mapped[Plot] = relationship(lazy="joined")
 
 
+class Detection(Base):
+    """帽子の判定1回分。作業中の件数（切る・残す・判断不可）と、あとで熟練者の判断と突き合わせるために残す。"""
+
+    __tablename__ = "detections"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    client_event_id: Mapped[UUID] = mapped_column(Uuid, unique=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"), index=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("work_sessions.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    detected_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    # take（切る）/ keep（残す）/ unknown（判断不可）
+    verdict: Mapped[str] = mapped_column(String(10))
+    # 判定の場面（contact・above_shaded・fruit_pair・no_tip など）
+    scene: Mapped[str | None] = mapped_column(String(30))
+    # 帽子で言った言葉
+    said: Mapped[str | None] = mapped_column(Text)
+    model_version: Mapped[str] = mapped_column(String(60))
+    received_at: Mapped[datetime] = mapped_column(UTCDateTime, server_default=func.now())
+
+
 class WorkLog(Base):
     """作業ログ。セッションの終了時に自動で作る。"""
 

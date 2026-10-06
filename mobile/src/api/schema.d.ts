@@ -395,10 +395,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 判定結果を送る（仮）
-         * @description 判定のたびにその場で送る。通信が切れていたあいだの分は端末に残し、戻ったら200件ずつ送る。送れるのは作業を始めた本人だけ。
+         * 判定結果を送る
+         * @description 帽子の判定のたびにその場で送る。通信が切れていたあいだの分は端末に残し、戻ったら200件ずつ送る。送れるのは作業を始めた本人だけ。同じ `client_event_id` は保存し直さない。
          *
-         *     判定データの形を AI 側と決めている途中のため、今は受け取った件数を返すだけで保存しない。
+         *     件数は作業の `counts`（切る・残す・判断不可）と作業ログに出る。
          */
         post: operations["post_detections_api_v1_work_sessions__session_id__detections_post"];
         delete?: never;
@@ -728,6 +728,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/speech": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 帽子で鳴らす声をつくる
+         * @description 文を読み上げた wav を返す（Amazon Polly のニューラル音声 Kazuha）。帽子の要件の `play` でそのまま送れる形。
+         *
+         *     `speed` はアプリの「話す速さ」の設定。音声をつくれないときは 503 `speech_unavailable`。スマートフォンはそのとき端末の読み上げに切り替える。
+         */
+        post: operations["create_speech_api_v1_speech_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -866,22 +888,10 @@ export interface components {
          *       "detections": [
          *         {
          *           "client_event_id": "550e8400-e29b-41d4-a716-446655440000",
-         *           "confidence": 0.87,
-         *           "detected_at": "2026-08-16T09:12:34+09:00",
-         *           "model_version": "sudachi-v0.3",
-         *           "reason_code": "too_dense",
-         *           "target": {
-         *             "bbox": [
-         *               0.42,
-         *               0.51,
-         *               0.08,
-         *               0.09
-         *             ],
-         *             "class": "fruit",
-         *             "neighbor_count": 5,
-         *             "relative_size": 0.62
-         *           },
-         *           "trigger_type": "center",
+         *           "detected_at": "2026-10-10T09:12:34+09:00",
+         *           "model_version": "kore-judge-2026-10-06",
+         *           "said": "取ってください",
+         *           "scene": "above_shaded",
          *           "verdict": "take"
          *         }
          *       ]
@@ -912,6 +922,30 @@ export interface components {
              */
             rejected: number;
         };
+        /**
+         * DetectionCounts
+         * @description 作業中の帽子の判定の件数。画面の「切る／残す／判断不可」。
+         */
+        DetectionCounts: {
+            /**
+             * Take
+             * @description 切る
+             * @default 0
+             */
+            take: number;
+            /**
+             * Keep
+             * @description 残す
+             * @default 0
+             */
+            keep: number;
+            /**
+             * Unknown
+             * @description 判断不可
+             * @default 0
+             */
+            unknown: number;
+        };
         /** DetectionIn */
         DetectionIn: {
             /**
@@ -927,12 +961,25 @@ export interface components {
              * @description 端末側の時刻
              */
             detected_at: string;
-            trigger_type: components["schemas"]["TriggerType"];
+            /** @description take＝切る、keep＝残す、unknown＝判断不可（撮り直し・判定の失敗） */
             verdict: components["schemas"]["Verdict"];
+            /**
+             * Scene
+             * @description 判定の場面（docs/voice-wording.md の表に対応）
+             * @example above_shaded
+             */
+            scene?: string | null;
+            /**
+             * Said
+             * @description 帽子で言った言葉
+             * @example 取ってください
+             */
+            said?: string | null;
+            trigger_type?: components["schemas"]["TriggerType"] | null;
             reason_code?: components["schemas"]["ReasonCode"] | null;
             /** Confidence */
-            confidence: number;
-            target: components["schemas"]["DetectionTarget"];
+            confidence?: number | null;
+            target?: components["schemas"]["DetectionTarget"] | null;
             /**
              * Model Version
              * @description どのモデルの判断か。**モデル改善の効果測定に必須**
@@ -1789,6 +1836,17 @@ export interface components {
              */
             body: string;
         };
+        /** SpeechIn */
+        SpeechIn: {
+            /** Text */
+            text: string;
+            /**
+             * Speed
+             * @default normal
+             * @enum {string}
+             */
+            speed: "fast" | "normal" | "slow" | "verySlow";
+        };
         /**
          * SuggestedSchedule
          * @description 「確認を明日の予定に追加」で開く予定入力画面の初期値。担当は空にしておく。
@@ -2054,6 +2112,7 @@ export interface components {
             ended_at: string;
             /** Minutes */
             minutes: number;
+            counts: components["schemas"]["DetectionCounts"];
         };
         /** WorkSession */
         WorkSession: {
@@ -2079,6 +2138,8 @@ export interface components {
             ended_at?: string | null;
             /** @description 判定しない作業と、帽子を使わない作業では null */
             config?: components["schemas"]["SessionConfig"] | null;
+            /** @description 帽子の判定の件数 */
+            counts?: components["schemas"]["DetectionCounts"];
         };
         /** WorkSessionCreate */
         WorkSessionCreate: {
@@ -3482,6 +3543,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvaluationRun"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_speech_api_v1_speech_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpeechIn"];
+            };
+        };
+        responses: {
+            /** @description 16kHz・16bit・モノラルの wav */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "audio/wav": unknown;
                 };
             };
             /** @description Validation Error */

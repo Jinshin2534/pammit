@@ -71,11 +71,15 @@ class DetectionTarget(BaseModel):
 
 class DetectionIn(IdempotentCreate):
     detected_at: datetime = Field(description="端末側の時刻")
-    trigger_type: TriggerType
-    verdict: Verdict
+    verdict: Verdict = Field(description="take＝切る、keep＝残す、unknown＝判断不可（撮り直し・判定の失敗）")
+    scene: str | None = Field(
+        default=None, max_length=30, description="判定の場面（docs/voice-wording.md の表に対応）",
+        examples=["above_shaded"])
+    said: str | None = Field(default=None, max_length=500, description="帽子で言った言葉", examples=["取ってください"])
+    trigger_type: TriggerType | None = None
     reason_code: ReasonCode | None = None
-    confidence: float = Field(ge=0.0, le=1.0)
-    target: DetectionTarget
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    target: DetectionTarget | None = None
     model_version: str = Field(
         description="どのモデルの判断か。**モデル改善の効果測定に必須**", examples=["sudachi-v0.3"]
     )
@@ -93,19 +97,11 @@ class DetectionBatch(BaseModel):
                 "detections": [
                     {
                         "client_event_id": "550e8400-e29b-41d4-a716-446655440000",
-                        "detected_at": "2026-08-16T09:12:34+09:00",
-                        "trigger_type": "center",
+                        "detected_at": "2026-10-10T09:12:34+09:00",
                         "verdict": "take",
-                        "reason_code": "too_dense",
-                        "confidence": 0.87,
-                        "target": {
-                            "class": "fruit",
-                            "bbox": [0.42, 0.51, 0.08, 0.09],
-                            "relative_size": 0.62,
-                            "neighbor_count": 5,
-                        },
-                        "model_version": "sudachi-v0.3",
-                        "image_key": None,
+                        "scene": "above_shaded",
+                        "said": "取ってください",
+                        "model_version": "kore-judge-2026-10-06",
                     }
                 ]
             }

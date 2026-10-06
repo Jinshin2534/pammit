@@ -4,6 +4,7 @@ from datetime import date, datetime
 from pydantic import BaseModel
 
 from app.schemas.plots import WorkType
+from app.schemas.sessions import DetectionCounts
 
 
 class WorkLog(BaseModel):
@@ -18,3 +19,4 @@ class WorkLog(BaseModel):
     started_at: datetime
     ended_at: datetime
     minutes: int
+    counts: DetectionCounts

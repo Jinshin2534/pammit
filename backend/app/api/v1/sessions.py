@@ -17,7 +17,7 @@ from app.schemas.detections import DetectionBatch, DetectionBatchResult
 from app.schemas.plots import HAT_WORK_TYPES, WorkType
 from app.schemas.sessions import WorkSession as WorkSessionOut
 from app.schemas.sessions import WorkSessionCreate, WorkSessionFinish
-from app.services import storage
+from app.services import detections, storage
 from app.services.voice_notes import attach_transcript
 
 router = APIRouter(prefix="/work-sessions", tags=["work-sessions"])
@@ -26,11 +26,13 @@ JST = timezone(timedelta(hours=9))
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 
 
-def _out(s: WorkSession) -> WorkSessionOut:
+def _out(db: Session, s: WorkSession, counts=None) -> WorkSessionOut:
+    if counts is None:
+        counts = detections.counts(db, [s.id])[s.id]
     return WorkSessionOut(
         id=s.id, plot_id=s.plot_id, plot_name=s.plot.name, work_type=s.work_type, user_id=s.user_id,
         schedule_id=s.schedule_id, uses_hat=s.uses_hat, started_at=s.started_at, ended_at=s.ended_at,
-        config=s.config_snapshot,
+        config=s.config_snapshot, counts=counts,
     )
 
 
@@ -96,7 +98,7 @@ def start_session(
         if existing.user_id != user.id:
             api_error(409, "duplicate_event_id", "この client_event_id はすでに使われています")
         response.status_code = status.HTTP_200_OK
-        return _out(existing)
+        return _out(db, existing)
 
     active = db.scalar(select(WorkSession).where(WorkSession.user_id == user.id, WorkSession.ended_at.is_(None))
                        .order_by(WorkSession.started_at.desc()).limit(1))
@@ -120,7 +122,7 @@ def start_session(
     )
     db.add(s)
     db.commit()
-    return _out(s)
+    return _out(db, s)
 
 
 @router.post(
@@ -142,12 +144,12 @@ def finish_session(
             worked_on=s.started_at.astimezone(JST).date(), started_at=s.started_at, ended_at=s.ended_at,
         ))
         db.commit()
-    return _out(s)
+    return _out(db, s)
 
 
 @router.get("/{session_id}", response_model=WorkSessionOut, summary="作業の詳細")
 def get_session(session_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)) -> WorkSessionOut:
-    return _out(_get_session(db, session_id, user))
+    return _out(db, _get_session(db, session_id, user))
 
 
 @router.get(
@@ -180,24 +182,27 @@ def list_sessions(
         stmt = stmt.where(WorkSession.ended_at.is_(None))
     if mine is True:
         stmt = stmt.where(WorkSession.user_id == user.id)
-    return [_out(s) for s in db.scalars(stmt.limit(500))]
+    sessions = list(db.scalars(stmt.limit(500)))
+    counts = detections.counts(db, [s.id for s in sessions])
+    return [_out(db, s, counts[s.id]) for s in sessions]
 
 
 @router.post(
     "/{session_id}/detections",
     response_model=DetectionBatchResult,
-    summary="判定結果を送る（仮）",
+    summary="判定結果を送る",
     description=(
-        "判定のたびにその場で送る。通信が切れていたあいだの分は端末に残し、戻ったら200件ずつ送る。"
-        "送れるのは作業を始めた本人だけ。\n\n"
-        "判定データの形を AI 側と決めている途中のため、今は受け取った件数を返すだけで保存しない。"
+        "帽子の判定のたびにその場で送る。通信が切れていたあいだの分は端末に残し、戻ったら200件ずつ送る。"
+        "送れるのは作業を始めた本人だけ。同じ `client_event_id` は保存し直さない。\n\n"
+        "件数は作業の `counts`（切る・残す・判断不可）と作業ログに出る。"
     ),
 )
 def post_detections(
     session_id: int, body: DetectionBatch, user: User = Depends(current_user), db: Session = Depends(get_db)
 ) -> DetectionBatchResult:
-    _get_own_session(db, session_id, user, "ほかの人の作業には判定を送れません")
-    return DetectionBatchResult(accepted=len(body.detections), duplicated=0, rejected=0)
+    s = _get_own_session(db, session_id, user, "ほかの人の作業には判定を送れません")
+    accepted, duplicated = detections.save(db, s, user, body.detections)
+    return DetectionBatchResult(accepted=accepted, duplicated=duplicated, rejected=0)
 
 
 @router.post(

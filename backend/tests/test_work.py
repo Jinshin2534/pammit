@@ -205,6 +205,30 @@ class SessionTests(unittest.TestCase):
         r = self.start(login(self.client, farm, farm.worker_id), farm.plot_ids[0])
         self.assertTrue(r.json()["uses_hat"])
 
+    def test_detections_are_saved_and_counted(self) -> None:
+        farm = make_farm()
+        headers = login(self.client, farm, farm.worker_id)
+        sid = self.start(headers, farm.plot_ids[0]).json()["id"]
+
+        def item(verdict, scene, event_id=None):
+            return {"client_event_id": event_id or str(uuid4()), "detected_at": "2026-10-10T09:00:00+09:00",
+                    "verdict": verdict, "scene": scene, "said": "取ってください", "model_version": "kore-test"}
+
+        same = str(uuid4())
+        batch = [item("take", "contact", same), item("take", "fruit_pair"), item("keep", "other"), item("unknown", "no_tip")]
+        r = self.client.post(f"/api/v1/work-sessions/{sid}/detections", headers=headers, json={"detections": batch})
+        self.assertEqual(r.json(), {"accepted": 4, "duplicated": 0, "rejected": 0})
+        r = self.client.post(f"/api/v1/work-sessions/{sid}/detections", headers=headers,
+                             json={"detections": [item("take", "contact", same)]})
+        self.assertEqual(r.json(), {"accepted": 0, "duplicated": 1, "rejected": 0})
+
+        counts = self.client.get(f"/api/v1/work-sessions/{sid}", headers=headers).json()["counts"]
+        self.assertEqual(counts, {"take": 2, "keep": 1, "unknown": 1})
+
+        self.client.post(f"/api/v1/work-sessions/{sid}/finish", headers=headers, json={"ended_at": "2026-10-10T10:00:00+09:00"})
+        logs = self.client.get("/api/v1/work-logs", headers=headers, params={"user_id": farm.worker_id}).json()
+        self.assertEqual([log["counts"] for log in logs if log["session_id"] == sid], [{"take": 2, "keep": 1, "unknown": 1}])
+
     def test_detections_only_from_session_owner(self) -> None:
         farm = make_farm()
         sid = self.start(login(self.client, farm, farm.worker_id), farm.plot_ids[0]).json()["id"]

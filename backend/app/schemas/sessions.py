@@ -34,6 +34,14 @@ class WorkSessionCreate(IdempotentCreate):
     started_at: datetime
 
 
+class DetectionCounts(BaseModel):
+    """作業中の帽子の判定の件数。画面の「切る／残す／判断不可」。"""
+
+    take: int = Field(default=0, description="切る")
+    keep: int = Field(default=0, description="残す")
+    unknown: int = Field(default=0, description="判断不可")
+
+
 class WorkSession(BaseModel):
     id: int
     plot_id: int
@@ -45,6 +53,7 @@ class WorkSession(BaseModel):
     started_at: datetime
     ended_at: datetime | None = None
     config: SessionConfig | None = Field(default=None, description="判定しない作業と、帽子を使わない作業では null")
+    counts: DetectionCounts = Field(default_factory=DetectionCounts, description="帽子の判定の件数")
 
 
 class WorkSessionFinish(BaseModel):
