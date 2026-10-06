@@ -22,7 +22,7 @@ npm install
 
 `fetch-native-models.sh`は音声認識に使うsherpa-onnxのAARとReazonSpeechモデル（約700MBを取得し、必要な約175MBだけ残す）を`modules/pammit-stt/android/`以下へ置きます。Androidのビルド前に一度実行してください。
 
-`fetch-fruit-detector.sh`は果実検出のモデル3つと試験用の写真を`AI実装計画/ai/`から`modules/pammit-fruit-detector/android/src/main/assets/fruit/`へ写します（場所は`PAMMIT_AI_MODELS_DIR`で変えられます）。あわせてONNX Runtime 1.28.2のJava APIのソースを取得します。sherpa-onnxのAARを使うため、`fetch-native-models.sh`の後に実行してください。JDK 17が必要です。
+`fetch-fruit-detector.sh`は判定のモデル5つ（実の検出・陰の判定2つ・葉の切り出し・奥行き）と試験用の写真を`modules/pammit-fruit-detector/android/src/main/assets/fruit/`へ置きます。モデルの一覧ファイル（1行に「ファイル名 SHA-256 URL」）を`PAMMIT_MODELS_URLS`で渡すとそこからダウンロードし、渡さなければ`AI実装計画/ai/models/mobile/`から写します（場所は`PAMMIT_AI_MODELS_DIR`で変えられます）。あわせてONNX Runtime 1.28.2のJava APIのソースを取得します。sherpa-onnxのAARを使うため、`fetch-native-models.sh`の後に実行してください。JDK 17が必要です。
 
 ## 開発時の確認
 
