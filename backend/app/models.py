@@ -1,4 +1,4 @@
-"""DB のテーブル定義。設計は docs/data-model.md。"""
+"""DB のテーブル定義。"""
 from datetime import date, datetime, time
 from typing import Any
 from uuid import UUID

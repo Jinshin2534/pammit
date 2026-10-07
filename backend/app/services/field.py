@@ -1,6 +1,6 @@
 """農園画面の中身。土壌水分の換算・予測と、灌水の助言。
 
-助言は「確認を促す」言い方に限り、灌水量は断定しない。根拠は docs/requirements.md。
+助言は「確認を促す」言い方に限り、灌水量は断定しない。
 """
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone

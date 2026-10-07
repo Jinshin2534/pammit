@@ -31,12 +31,9 @@ docker compose up
 npx openapi-typescript openapi.json -o src/api/schema.d.ts
 ```
 
-## 現在の状態
+## DB とテスト
 
-センサー受信（`sensors` タグ）だけ実装済みで、DB に保存します。それ以外はスタブ応答です。
-AWS 上の構成は [docs/aws.md](../docs/aws.md) を参照。
-
-- テーブルは起動時に自動で作る（`create_all`）。既存テーブルに列を足すときは、`app/db.py` の `ADDED_COLUMNS` にも書く（起動時に、なければ足す）。列の型変更や削除は扱わないので、本番運用前に Alembic へ移行する
+- テーブルは起動時に自動で作る（`create_all`）。既存テーブルに列を足すときは、`app/db.py` の `ADDED_COLUMNS` にも書く
 - DB は `DATABASE_URL`（既定はローカルの SQLite `pammit.db`）。docker compose では PostgreSQL を使う
 
 ```bash
@@ -45,15 +42,13 @@ AWS 上の構成は [docs/aws.md](../docs/aws.md) を参照。
 ./.venv/bin/python -m app.cli create-device --name test --plot-id 3   # 端末登録（デバイスキー発行）
 ```
 
-エンドポイントごとの実装状況は [docs/api.md](../docs/api.md) にある。
-
 ## 構成
 
 ```
 app/
   main.py          FastAPI アプリ。OpenAPI のメタデータとタグ説明
   core/config.py   設定
-  db.py / models.py  DB 接続とテーブル定義（現在はセンサーのみ）
+  db.py / models.py  DB 接続とテーブル定義
   services/        ドメインロジック（LoRaWAN ペイロードの復号など）
   cli.py           管理コマンド（端末登録）
   schemas/         Pydantic モデル。仕様の実体

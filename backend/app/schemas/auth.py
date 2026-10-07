@@ -13,7 +13,7 @@ class Role(str, Enum):
     worker = "worker"
 
 
-# 画面で選べる値。値の一覧は docs/data-model.md
+# 画面で選べる値。
 Gender = Literal["女", "男", "回答しない"]
 # 作業者の種別。owner は持たない（ログイン画面では役割の「師匠農家さん」で示す）
 WorkerType = Literal["後継者さん", "アルバイト"]
