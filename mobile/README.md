@@ -67,9 +67,6 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1 npx expo start --dev-clien
 | `docs/` | モバイル実装内の設計資料（共通コンポーネントは [docs/component-contracts.md](docs/component-contracts.md)） |
 
 画面から直接`fetch`せず、通信処理は`src/api/`へ集約します。帽子との通信は`src/hat/`から呼びます。
-果実検出・文字起こし・音声合成のネイティブ部品がまだないときは、同じ型とエラー形式のダミーを使います。
-
-画面の動きと通信が切れたときの扱いは [docs/requirements.md](../docs/requirements.md)、APIは [docs/api.md](../docs/api.md) にあります。
 
 ## API のつなぎ方
 
@@ -89,7 +86,6 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1 npx expo start --dev-clien
 - 作業の種類は、画面と色は英語キー（`thinning`など）、APIは日本語（`摘果・摘葉`など）です。`toApiWorkType`・`fromApiWorkType`（`@/lib/work-types`）で変換します
 - 日時はAPIがタイムゾーン付き（多くはUTC）、画面は日本時間です。`toJstDate`・`toJstTime`・`todayJst`・`jstToIso`、時刻だけの値は`fromApiTime`（"HH:MM:SS"→"HH:MM"）と`toApiTime`を使います（`@/lib/datetime`）
 - 端末に残すものは`src/storage/`に関数を足します。読み書きは`try/catch`で包み、失敗してもアプリが止まらないようにします
-- `src/providers/app-state.tsx`はまだつないでいない画面のためのダミーです。つないだ画面から使わなくし、最後に消します
 
 バックエンドのスキーマが変わったら型を作り直します（`backend/.venv`が必要です）。
 

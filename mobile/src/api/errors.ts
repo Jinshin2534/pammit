@@ -1,5 +1,5 @@
 // API のエラーはすべて ApiError にそろえる。
-// サーバーの形は {"error": {"code", "message", "detail"}}（docs/api.md）。
+// サーバーの形は {"error": {"code", "message", "detail"}}。
 // 通信できなかったときは status 0 で、code は network_error か timeout。
 
 /** サーバーへ届かなかったときの code */

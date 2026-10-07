@@ -12,7 +12,7 @@ from app.db import init_db
 from app.jobs import daily_loop
 
 DESCRIPTION = """
-すだち農家向けの作業支援システム「パミット」の API。資料はリポジトリの `docs/` にある。
+すだち農家向けの作業支援システム「パミット」の API。
 
 | 項目 | 内容 |
 |---|---|

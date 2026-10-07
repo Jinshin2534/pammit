@@ -1,6 +1,6 @@
 # パミット インフラ（AWS CDK）
 
-構成・操作手順・費用・片付け方は [docs/aws.md](../docs/aws.md) を参照。
+EC2（Caddy + FastAPI）・RDS PostgreSQL・S3 を東京リージョンに作る。
 
 ```bash
 npm install
@@ -8,3 +8,5 @@ npx jest          # 構成のテスト（DB が非公開か、SSH を開けて�
 npx cdk diff      # deploy 前に必ず確認
 ./scripts/deploy.sh
 ```
+
+サーバーの操作は `scripts/` のスクリプト（SSM 経由）で行う。
