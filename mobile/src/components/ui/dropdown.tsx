@@ -16,7 +16,7 @@ export function Dropdown({ label, options, value, onChange, multiple = false, pl
     else { onChange([next]); setOpen(false); }
   };
   return (
-    <View style={[styles.wrapper, open && styles.wrapperOpen]} testID={testID}>
+    <View style={styles.wrapper} testID={testID}>
       {label ? <AppText variant="bodyLg" style={styles.label}>{label}</AppText> : null}
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: open, disabled }} disabled={disabled} onPress={() => setOpen((current) => !current)} style={({ pressed }) => [styles.field, disabled && styles.disabled, pressed && styles.pressed]} testID={testID ? `${testID}-toggle` : undefined}>
         <AppText variant="bodyLg" numberOfLines={1} style={[styles.fieldText, !selectedLabels.length ? styles.placeholder : undefined]}>{selectedLabels.join(' / ') || placeholder}</AppText>
@@ -30,7 +30,7 @@ export function Dropdown({ label, options, value, onChange, multiple = false, pl
         </View>
       </Pressable>
       {open ? (
-        <View accessibilityRole="list" style={[styles.options, { top: label ? 91 : 64 }]}>
+        <View accessibilityRole="list" style={styles.options}>
           {options.map((option) => {
             const selected = value.includes(option.value);
             return (
@@ -55,13 +55,13 @@ export function Dropdown({ label, options, value, onChange, multiple = false, pl
 
 const styles = StyleSheet.create({
   wrapper: { alignSelf: 'stretch', gap: 6 },
-  wrapperOpen: { zIndex: 20 },
   label: { lineHeight: 25, marginBottom: 2 },
   field: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, flexDirection: 'row', height: 58, justifyContent: 'space-between', overflow: 'hidden', paddingHorizontal: 20 },
   fieldText: { flex: 1, lineHeight: 25 },
   chevronSlot: { alignItems: 'center', height: 10, justifyContent: 'center', marginLeft: 12, width: 14 },
   chevron: { height: 7.5, transform: [{ rotate: '180deg' }], width: 12.1244 },
-  options: { backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, left: 0, overflow: 'hidden', paddingVertical: 6, position: 'absolute', right: 0, zIndex: 30 },
+  // 一覧は浮かせずに入力欄の下へ並べる。浮かせるとページの高さに入らず、下の選択肢までスクロールできない
+  options: { backgroundColor: colors.surface, borderColor: colors.primary, borderRadius: radii.md, borderWidth: strokes.default, overflow: 'hidden', paddingVertical: 6 },
   option: { height: 48, justifyContent: 'center', paddingHorizontal: 20 },
   optionSelected: { backgroundColor: colors.accent },
   optionText: { lineHeight: 25 },
