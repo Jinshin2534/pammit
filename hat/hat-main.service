@@ -1,0 +1,16 @@
+[Unit]
+Description=Hat Main Voice Camera Server
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=miyui
+WorkingDirectory=/home/miyui
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/miyui/vosk-venv/bin/python -u /home/miyui/hat_main.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
