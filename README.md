@@ -24,5 +24,6 @@ AWS（EC2 + RDS + S3）            記録・予定・AI相談・センサーデ�
 | `mobile/` | Androidアプリ（Expo + React Native） |
 | `backend/` | API サーバー（FastAPI） |
 | `infra/` | AWS の構成（CDK） |
+| `firmware/` | 農地センサー（ESP32）のスケッチ |
 
-動かし方はそれぞれの README にあります。
+動かし方はそれぞれの README にあります。ESP32 の設定と書き込みは [firmware/field-sensor/README.md](firmware/field-sensor/README.md) を参照してください。

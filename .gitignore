@@ -10,6 +10,7 @@ docs/learning/
 !.env.example
 *.pem
 *.key
+firmware/**/secrets.h
 
 # --- Python ---
 .venv/
